@@ -1,0 +1,14 @@
+{
+    "expr": "RAW/{}.dat",
+    "stack":true,
+    "coord": "GEO/geo_eubabrunn_tag3.txt",
+    "info": "GEO/",
+    "ref_depth": 680,
+    "error": 0.008,
+    "delay": 0.0,
+    "synthetic": null,
+    "number_pick_types": 1,
+    "pick_colors": ["C0", "C1", "C2", "C3", "C4"]
+}
+
+
