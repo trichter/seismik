@@ -1,0 +1,39 @@
+#!/bin/tcsh
+
+\rm .gmt*
+
+set psfile="amp_spec.ps"
+
+set j1=X10/20
+set j2=X-5l/20
+
+segyread tape=../PROCESSING/data.sgy endian=0 | segyclean | sufft | suamp mode=amp >! amp.su
+suwind tmax=500 < amp.su | suascii bare=5 key=fldr | awk '{if($3>0.00001)print $0}' | sort -n -k1 -k2  >! dum.dat
+
+set nshot=`surange < amp.su | awk '{if($1=="fldr")print $3}'`
+set nff=`surange < amp.su | awk '{if($1=="ns")print $2}'`
+set dff=`surange < amp.su | awk '{if($1=="d1")print $2}'`
+set fmax=`echo $dff $nff | awk '{print $1*($2-1)}'`
+set fmax=500
+
+set n=`cat dum.dat | wc -l`
+cat dum.dat| sort -n -k2 | awk 'BEGIN{c=1;amp=0}{if($2!=old && NR>1){print old,amp/c;c=1;amp=0;};amp=amp+$3;c=c+1;if(NR=='$n')print $2,amp/c;old=$2}' >! spec_all.dat
+cat dum.dat | awk 'BEGIN{c=1;amp=0}{if($2!=old && NR>1){print old2,old,amp/c;c=1;amp=0;};amp=amp+$3;c=c+1;if(NR=='$n')print $1,$2,amp/c;old=$2;old2=$1}' >! spec_each_shot.dat
+
+set r=0/$nshot/0/$fmax
+set rp=0.5/`echo $nshot | awk '{print $1+0.5}'`/0/$fmax
+cat spec_each_shot.dat |  xyz2grd -R$r -I1/$dff -Gspec.grd
+
+set max=10000000
+
+makecpt -Cseis -I -T100/$max/1 -Qo -Z -D >! amp.cpt 
+set r2=100/$max/0/$fmax
+
+
+grdimage spec.grd -Camp.cpt -J$j1 -R$rp -Ba5f1:"Shot":/a50f10:"Frequency [Hz]":WSn -X2 -Y5 -K -P>! $psfile
+psscale -Camp.cpt -D5/-2/10/0.3h -Q -Ba1pf3:"Amplitude": -O -K -V >> $psfile
+cat spec_all.dat | awk '{print $2,$1}' | psxy -R$r2 -J$j2 -X10  -Ba1pf3:"Amplitude":/a50f10:"Frequency [Hz]":ESn -O -V >> $psfile
+
+ps2raster $psfile -A -E600 -Tg
+
+#gv $psfile

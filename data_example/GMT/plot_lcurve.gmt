@@ -1,0 +1,65 @@
+#!/bin/tcsh
+\rm .gmt*
+gmt set LABEL_FONT_SIZE 12
+
+
+set inv="../INV"
+set psfile="lcurve.ps"
+set imax=`ls $inv/log_? | tail -1 | sed 's/\// /g' | sed 's/log_/ /g' | awk '{print $NF}' `
+set imax2=`echo $imax | awk '{print $1+1}'`
+gmt makecpt -Cseis -T0/$imax2/1 -I  >! n.cpt
+
+
+set x0 = `awk '{print $1}' $inv/\for.header`
+set x1 = `awk '{print $2}' $inv/\for.header`
+set z0 = `awk '{print $5}' $inv/\for.header`
+set z1 = `awk '{print $6}' $inv/\for.header`
+
+
+\rm max.dat
+touch max.dat
+foreach i ( `seq 0 1 $imax` )
+cat $inv/log_$i | awk '{if($4=="model:")print $5}' >! mod.dat
+cat mod.dat | awk 'BEGIN{sum=0}{sum=sum+$1;print sum}' | tail -1 | awk '{print $1+0.5}' >> max.dat
+end
+set ittmax=`sort -n max.dat | tail -1 `
+set r=0.01/$ittmax/0/20
+set j=X20/15
+
+gmt psbasemap -R$r -J$j -K -V -Ba1:"Iteration":/a1f0.2:"RMS-residual [ms]":WSen -X2 -Y4 >! $psfile
+foreach i ( `seq 0 1 $imax` )
+cat $inv/log_$i | awk '{if($2=="iteration:"){it=$3};if($3=="residual"){rms=$7/1000};if($3=="lambda:"){lambda=$4;print it,lambda,rms}}' | awk 'BEGIN{it=1}{if($1<old)it++;print it,$1,$2,$3;old=$1}' >! lcurve.dat
+cat $inv/log_$i | awk '{if($4=="model:")print $5}' >! mod.dat
+set ittmax=`cat mod.dat | awk 'BEGIN{sum=0}{sum=sum+$1;print sum}' | tail -1 | awk '{print $1+0.5}'`
+\rm lcurve_select.dat
+touch lcurve_select.dat
+foreach it ( `seq 1 1 $ittmax` )
+  set iimax=`head -$it mod.dat | tail -1`
+  cat lcurve.dat | awk '{if($1=='$it' && $2<='$iimax')print $0}' >> lcurve_select.dat
+end
+
+cat lcurve_select.dat | awk '{print NR,$4,'$i'}'   | gmt psxy -R -J -O -V -Sc0.1 -Cn.cpt -W+0.00001 -K  >> $psfile
+cat lcurve_select.dat | awk '{if(NR==1){print "> -Z'$i'"};print NR,$4}'   | gmt psxy -R -J -O -V -Cn.cpt -W2  -K -m">" >> $psfile
+cat lcurve_select.dat | awk '{if('$i'<2){printf("%d %.5f 8 0 0 BC %.1f\n",NR,$4+0.1,$3);}else{printf("%d %.5f 8 0 0 TC %.1f\n",NR,$4-0.15,$3);}}'   | gmt pstext -R -J -O -K -V -Gwhite  >> $psfile
+
+end
+gmt set LABEL_OFFSET 0.2
+#gmt psscale -Cn.cpt -D10/-2.5/15/0.3h -L0.5 -B:"Size of inversion cell": -Al -K -O  >> $psfile
+echo 0 0 | gmt psxy -R0/15/0/2 -JX15/1 -Y-3.5 -X2.5  -Sc0.0000001 -W255/255/255 -G255/255/255 -O -K  -V >> $psfile
+foreach  i ( `seq 0 1 $imax` )
+	set xx=`cat $inv/i.dat | awk '{if($1=='$i')printf("%.1f",(('$x1')-('$x0'))/$2);}'`
+	set zz=`cat $inv/i.dat | awk '{if($1=='$i')printf("%.1f",(('$z1')-('$z0'))/$3);}'`
+	echo $i $imax2 $xx $zz | awk '{x=15/($2*2)+$1*15/($2);y=0.6;printf("%.5f %.5f 12 0 0 CM %.1fm x %.1fm",x,y,$3,$4)}' | gmt pstext -R0/15/0/2 -JX15/1  -Wblack -Gwhite -O -K  -V >> $psfile
+end
+
+echo 0 0 | gmt psxy -R0/15/0/2 -JX15/1  -Sc0.0000001 -W255/255/255 -G255/255/255 -O  -V >> $psfile
+
+gmt ps2raster $psfile -A -E600 -Tg
+
+gv $psfile &
+
+
+
+
+
+

@@ -1,0 +1,97 @@
+#!/bin/tcsh
+#Plots the velocity model and the RMS-residual for each shot
+
+\rm .gmt*
+gmtset MEASURE_UNIT CM
+gmtset ANOT_FONT_SIZE 10
+gmtset LABEL_FONT_SIZE 12
+gmtset COLOR_NAN  200/200/200
+
+
+set inv="../CHK"
+set inv2="../INV"
+set chkx=40
+set chky=20
+set per=5
+set chk=chk_${chkx}x${chky}_per${per}
+set psfile=${chk}.ps
+
+set imax=`ls $inv2/V?.grd | tail -1 | sed 's/\// /g' | sed 's/.grd/ /g' | sed 's/V/ /g' | awk '{print $NF}' `
+
+set x0 = `awk '{print $1}' $inv/\for.header`
+set x1 = `awk '{print $2}' $inv/\for.header`
+set dx = `awk '{print $7}' $inv/\for.header`
+
+set y0 = `awk '{print $3}' $inv/\for.header`
+set y1 = `awk '{print $4}' $inv/\for.header`
+
+set z0 = `awk '{print $5}' $inv/\for.header`
+set z1 = `awk '{print $6}' $inv/\for.header`
+
+set nx = `awk '{print $8}' $inv/\for.header`
+set ny = `awk '{print $9}' $inv/\for.header`
+set nz = `awk '{print $10}' $inv/\for.header`
+
+set r = $x0/$x1/$z0/$z1
+
+set x0p=-3
+set x1p=47
+set z0p=-3
+set z1p=25
+set rp = $x0p/$x1p/$z0p/$z1p
+
+set laenge=18
+set ve="1:1"
+set hoehe=`echo $x0p $x1p $z0p $z1p $laenge $ve | sed 's/:/ /g' | awk '{print ($5*($4-$3)*$6)/($2-$1)}'` 
+set j=X$laenge/-$hoehe
+set zshift=`echo $hoehe | awk '{print $1+2}'`
+set laenge2=`echo $laenge | awk '{print $1/2}'`
+
+makecpt -Cpolar -T-$per/$per/1 -Z -D >! pert.cpt
+grdsample $inv/V${imax}_${chk}.grd -R$r -I$dx -Gdum1.grd -Ql
+grdsample $inv/FWD/background+${chk}.grd -R$r -I$dx -Gdum2.grd -Ql
+grdsample $inv/FWD/background.grd -R$r -I$dx -Gdum3.grd -Ql
+
+grdmath dum1.grd dum3.grd DIV 1 SUB 100 MUL  = inv.grd
+grdmath dum2.grd dum3.grd DIV 1 SUB 100 MUL  = pert.grd
+
+grdsample $inv/R${imax}_${chk}.grd -I$dx -R$r -Gr.grd  -Ql
+set max=`grdinfo r.grd | awk '{if($4=="z_max:")print $5/10}'`
+set nz2=`grdinfo r.grd | awk '{if($10=="ny:")print $11}'`
+set nx2=`grdinfo r.grd | awk '{if($10=="nx:")print $11}'`
+grdmath r.grd 1 SUB 0 GT r.grd MUL  = dum.grd
+
+grd2xyz dum.grd -ZfLB >! dum1.bin
+suaddhead ns=$nz2 < dum1.bin | sushw key=dt a=`echo $dx | awk '{print $1*1000}'` | sugain pbal=1 | sugain pclip=1.3  | sufilter f=120,180 amps=1,0 |   sustrip >! tmp1.bin
+
+transp n1=$nz2 < tmp1.bin >! tmp2.bin		# col (t) --> row (x)
+	cat tmp2.bin \
+		| suaddhead ns=$nx2 \
+		| sushw key=dt a=`echo $dx | awk '{print $1*1000}'` \
+		| sufilter f=120,180 amps=1,0 \
+	        | sustrip >! tmp3.bin
+
+cat tmp3.bin |  xyz2grd  -R$r -I$dx -ZfBL -Gdum.grd
+grdmath dum.grd UPPER = dum1.grd
+grdmath dum.grd dum1.grd DIV 1 SUB -1 MUL = int.grd
+makecpt -Cseis -T0.5/4/0.5 -D -Z -I >! vel.cpt
+
+
+grdimage inv.grd -Iint.grd -J$j -R$rp -Cpert.cpt -V -K -P -X2 -Y4 >! $psfile
+cat $inv/poly.dat | psxy -J$j -R$rp -W0.0000001/255/255/255 -G255/255/255 -O  -N -K  >> $psfile
+cat $inv/topo.dat | psxy -J$j -R$rp -W5/0/0/0 -O  -N -K  >> $psfile
+awk '{if ($6==-1) print $1, $3-0.9}' $inv/geo.dat | psxy -JX -R -Sa0.4 -W1/0/0/0 -G255/0/0 -O -K -N  >> $psfile
+awk '{if ($6==1) print $1, $3-0.5}' $inv/geo.dat | psxy -JX -R -Si0.2 -W1/0/0/0 -G255/255/0  -O -K -N >> $psfile
+psscale -Cpert.cpt -D$laenge2/-2/$laenge2/0.3h -B:"P-velocity [%]": -O -K  >> $psfile
+psbasemap -R -J -O -K -V  -B20f5:"Distance [m]":/10f2:"Depth [m]":WSe >> $psfile
+
+grdimage pert.grd -J$j -R$rp -Cpert.cpt  -V -K -O -Y$zshift  >> $psfile
+cat $inv/poly.dat | psxy -J$j -R$rp -W0.0000001/255/255/255 -G255/255/255 -O  -N -K  >> $psfile
+cat $inv/topo.dat | psxy -J$j -R$rp -W5/0/0/0 -O  -N -K  >> $psfile
+psbasemap -R -J -O  -V  -B20f5:"Distance [m]":/10f2:"Depth [m]":WSe >> $psfile
+
+
+\rm *.grd *.cpt *.bin
+
+ps2raster $psfile -A -E600 -Tg
+gv $psfile &

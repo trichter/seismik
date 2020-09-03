@@ -1,0 +1,107 @@
+#!/bin/tcsh
+#Plots the velocity model and the RMS-residual for each shot
+
+\rm .gmt*
+gmtset MEASURE_UNIT CM
+gmtset ANOT_FONT_SIZE 10
+gmtset LABEL_FONT_SIZE 12
+gmtset COLOR_NAN  200/200/200
+
+
+set inv="../INV"
+set psfile=vp.ps
+set x0 = `awk '{print $1}' $inv/\for.header`
+set x1 = `awk '{print $2}' $inv/\for.header`
+set dx = `awk '{print $7}' $inv/\for.header`
+
+set y0 = `awk '{print $3}' $inv/\for.header`
+set y1 = `awk '{print $4}' $inv/\for.header`
+
+set z0 = `awk '{print $5}' $inv/\for.header`
+set z1 = `awk '{print $6}' $inv/\for.header`
+
+set nx = `awk '{print $8}' $inv/\for.header`
+set ny = `awk '{print $9}' $inv/\for.header`
+set nz = `awk '{print $10}' $inv/\for.header`
+
+set r = $x0/$x1/$z0/$z1
+echo $r  $dx
+set x0p=$x0
+set x1p=$x1
+set z0p=-10
+set z1p=50
+set rp = $x0p/$x1p/$z0p/$z1p
+set laenge=15
+set ve="1:1"
+set hoehe=`echo $x0p $x1p $z0p $z1p $laenge $ve | sed 's/:/ /g' | awk '{print ($5*($4-$3)*$6)/($2-$1)}'` 
+set j=X$laenge/-$hoehe
+
+set rrms=$x0p/$x1p/0/0.50
+set jrms=X$laenge/5
+
+set imax=`ls $inv/V?.grd | tail -1 | sed 's/\// /g' | sed 's/.grd/ /g' | sed 's/V/ /g' | awk '{print $NF}' `
+set laenge_scale=`echo $laenge | awk '{print $1/2}'`
+set imax=3
+makecpt -Cseis -T0.5/4/0.5 -Z -I -D >! vel.cpt
+makecpt -Chot -T0/80/10 -Z  -D >! ray.cpt
+grdsample $inv/V$imax.grd -I$dx -R$r -Gvp.grd -Ql
+grdsample $inv/R$imax.grd -I$dx -R$r -Gr.grd  -Ql
+
+
+set max=`grdinfo r.grd | awk '{if($4=="z_max:")print $5/10}'`
+set nz2=`grdinfo r.grd | awk '{if($10=="ny:")print $11}'`
+set nx2=`grdinfo r.grd | awk '{if($10=="nx:")print $11}'`
+grdmath r.grd 1 SUB 0 GT r.grd MUL  = dum.grd
+
+grd2xyz dum.grd -ZfLB >! dum1.bin
+suaddhead ns=$nz2 < dum1.bin | sushw key=dt a=`echo $dx | awk '{print $1*1000}'` | sugain pbal=1 | sugain pclip=1.3  | sufilter f=100,140 amps=1,0|   sustrip >! tmp1.bin
+
+transp n1=$nz2 < tmp1.bin >! tmp2.bin		# col (t) --> row (x)
+	cat tmp2.bin \
+		| suaddhead ns=$nx2 \
+		| sushw key=dt a=`echo $dx | awk '{print $1*1000}'` \
+		| sufilter f=100,140 amps=1,0 \
+	        | sustrip >! tmp3.bin
+
+cat tmp3.bin |  xyz2grd  -R$r -I$dx -ZfBL -Gdum.grd
+grdmath dum.grd UPPER = dum1.grd
+grdmath dum.grd dum1.grd DIV 1 SUB -1 MUL = int.grd
+
+cat $inv/FWD1/fd????.asc >! dum
+set n=`cat dum | wc -l`
+paste dum $inv/geo.dat | awk 'BEGIN{sum=0;c=0}{if($6==-1 && NR>1){print sx,sqrt(sum/c);c=0;sum=0};if($6==1){sum=($4-$10)^2;c=c+1};if($6==-1){sx=$1};if(NR=='$n')print sx,sqrt(sum/c);}' >! rms.dat
+
+grdimage r.grd -J$j -R$rp -Cray.cpt  -V -K -Y2 -P >! $psfile
+cat $inv/poly.dat | psxy -J$j -R$rp -W0.0000001/255/255/255 -G255/255/255 -O  -N -K  >> $psfile
+cat $inv/topo.dat | psxy -J$j -R$rp -W5/0/0/0 -O  -N -K  >> $psfile
+awk '{if ($6==-1) print $1, $3-0.9}' $inv/geo.dat | psxy -JX -R -Sa0.4 -W1/0/0/0 -G255/0/0 -O -K -N  >> $psfile
+awk '{if ($6==1) print $1, $3-0.5}' $inv/geo.dat | psxy -JX -R -Si0.2 -W1/0/0/0 -G255/255/0  -O -K -N >> $psfile
+psbasemap  -J$j -R$rp -B20f5:"Distance [m]":/5f1:"Depth [m]":WSe  -O  -K >> $psfile
+psscale -Cray.cpt -D`echo $laenge | awk '{print $1+1.5}'`/`echo $hoehe | awk '{print $1/2}'`/`echo $hoehe | awk '{print $1*0.8}'`/0.3 -Ef -O -K -V -Ba20:"Ray hit count": -Al --LABEL_OFFSET=0.3 >> $psfile
+
+grdimage vp.grd -J$j -R$rp -Cvel.cpt -Iint.grd -V -K -O -Y`echo $hoehe | awk '{print $1}'` >> $psfile
+grdcontour vp.grd -J -R -C1 -O -K -A >> $psfile
+cat $inv/poly.dat | psxy -J$j -R$rp -W0.0000001/255/255/255 -G255/255/255 -O  -N -K  >> $psfile
+cat $inv/topo.dat | psxy -J$j -R$rp -W5/0/0/0 -O  -N -K  >> $psfile
+awk '{if ($6==-1) print $1, $3-0.9}' $inv/geo.dat | psxy -JX -R -Sa0.4 -W1/0/0/0 -G255/0/0 -O -K -N  >> $psfile
+awk '{if ($6==1) print $1, $3-0.5}' $inv/geo.dat | psxy -JX -R -Si0.2 -W1/0/0/0 -G255/255/0  -O -K -N >> $psfile
+set dt = `egrep RMS $inv/log_$imax | tail -1 | awk '{printf" %.3f\n", $7/1000}'`
+echo $x0p $x1p  $z0p $z1p $dt | awk '{print $1+($2-$1)/('$laenge'*20), $4-($4-$3)/('$hoehe'*20), 10,0,1,"LB RMS= "$5" ms"}' | pstext -JX -R  -G0 -K -O >> $psfile
+echo $x0p $x1p $z1p | awk '{print $1,$3,"\n",$2,$3}'| psxy -J -R -W10/0/0/0  -O -K -V  >> $psfile
+psbasemap  -J$j -R$rp -B20f5:"Distance [m]":/5f1:"Depth [m]":We  -O  -K >> $psfile
+psscale -Cvel.cpt -D`echo $laenge | awk '{print $1+1.5}'`/`echo $hoehe | awk '{print $1/2}'`/`echo $hoehe | awk '{print $1*0.8}'`/0.3 -Ef  -O  -V -Ba0.5:"P-velocity [km s@+-1@+]": -Al --LABEL_OFFSET=0.3 >> $psfile
+
+grd2xyz -ZfLT vp.grd > vp.bin
+grd2xyz -ZfLT r.grd > r.bin
+
+#exit
+cat rms.dat | psxy -J$jrms -R$rrms -Sc0.2 -W0.000001/0/0/0 -G0/0/0 -O -K -V -Y$hoehe  >> $psfile
+echo $x0p $x1p 0 | awk '{print $1,$3,"\n",$2,$3}'| psxy -J$jrms -R$rrms -W10/0/0/0  -O -K -V  >> $psfile
+psbasemap  -J$jrms -R$rrms -B20f5:"Distance [m]":/0.05f0.01:"RMS-residual [ms]":WNe  -O   >> $psfile
+
+ps2raster -A -E600 -Tg $psfile
+gv $psfile &
+
+
+
+

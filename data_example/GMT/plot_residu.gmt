@@ -1,0 +1,50 @@
+#!/bin/tcsh
+
+\rm .gmt*
+
+gmtset HEADER_FONT_SIZE=16
+gmtset LABEL_FONT_SIZE=12
+#gmtset LABEL_OFFSET=0.2
+#gmtset LABEL_OFFSET=1.1
+
+
+set DATA = ../PROCESSING/my_sht.hdr
+set psfile = residu.ps
+
+##creat a File with all RMS-values from the picking-file##
+cat $DATA | awk 'BEGIN{n=0;shotid=0}{if($1!=shotid){if(n>0){print shotid, sqrt(sum/n)};shotid=$1;sum=0;n=0}};{if($4==1 && $9>0 && $10>0){sum=sum+(($9-$10)/10)**2; n=n+1}}END{if(n>0){print shotid, sqrt(sum/n)}}' >! RMS.dat
+
+
+##plot the RMS over the shotpoints##
+set xmin=`cat RMS.dat | awk '{print $1}' | sort -g | head -1`
+set xmax=`cat RMS.dat | awk '{print $1}' | sort -g | tail -1`
+set ymin=`cat RMS.dat | awk '{printf"%3.0f\n", $2*1000}' | sort -g | head -1`
+set ymax=`cat RMS.dat | awk '{printf"%3.0f\n", $2*1000}' | sort -g | tail -1`
+#set laenge=15
+#set hoehe=`echo $xmin $xmax 0 $ymax $laenge | awk '{print 15*($5/($2-$1)*($4-$3))}'`
+#set j=X$laenge/$hoehe
+
+set rms = `cat RMS.dat | awk 'BEGIN{sum=0;n=0}{sum=sum+$2;n=n+1}END{printf"%2.2f\n", sum/n*1000}'`
+#set rms = `cat $DATA | awk 'BEGIN{sum=0;n=0}{sum=sum+(($9-$10)/100)**2;n=n+1}END{printf"%2.2f\n", sqrt(sum/n)}'`
+
+### plot rms data for SP
+cat RMS.dat | awk '{print $1, $2*1000}' | gmt psxy -JX10/2.5 -R$xmin/$xmax/0/$ymax -Sc0.05 -Gblack -Y15 -K >! $psfile
+echo $xmin $xmax 0 $ymax | awk '{print $2-($2-$1)/(10*5), $4-($4-$3)/(2.5*5),10,0,1,"RT","RMS Mittelwert: '$rms' ms"}' | gmt pstext -J -R -G0 -O -K >> $psfile
+gmt psbasemap -R -J -Ba100f25/a2f1:"RMS [ms]":Wen --LABEL_OFFSET=0.8 -O -K >> $psfile
+
+
+### plot the residu from obs and syn times##
+set xmin2=`cat RMS.dat | awk '{print $1}' | sort -g | head -1`
+set xmax2=`cat RMS.dat | awk '{print $1}' | sort -g | tail -1`
+
+gmt makecpt -Cpolar -T-10/10/5 -Z -D > cor.cpt
+
+cat $DATA | awk '{if($4==1 && $9>0 && $10>0){print $1*4,$6,($9-$10)*100}}' | gmt xyz2grd -I2/3 -F -R0/100/-100/100 -Gresidu.grd
+gmt grdimage residu.grd -Ccor.cpt -JX10 -R -Sl -Ba100f20:"Profilmeter [m]":/a100f20:"Offset [m]":WSe -O -K -Y-10 >> $psfile
+gmt psscale -Ccor.cpt -D11.5/5/8/0.3 -Ba5f2.5:"@~\104@~t [ms]": -Al -O >> $psfile
+
+
+gmt ps2raster -Tg -E600 -A -P $psfile
+#evince `echo $psfile | sed s/.ps/.png/g`
+\rm *.ps *.grd *.cpt
+exit
