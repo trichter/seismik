@@ -406,6 +406,7 @@ class MPLSeisPicker(object):
                 kw['zerophase'] = bool(int(filt[1]))
         except Exception:
             print('Error in filter textbox')
+            self.e2.focus_set()
         else:
             self.opt.filter = dict(type=ftype, **kw)
             print(f'You chose filter {self.opt.filter}')
@@ -417,6 +418,7 @@ class MPLSeisPicker(object):
             thres, t1, t2, t3, t4 = [float(_) for _ in self.e3.get().split()]
         except Exception:
             print('Error in picker textbox')
+            self.e3.focus_set()
         else:
             self.opt.autopick = SimpleNamespace(thres=thres, t1=t1, t2=t2,
                                                 t3=t3, t4=t4)
@@ -433,6 +435,7 @@ class MPLSeisPicker(object):
                 self.nshot = int(self.e1.get())
             except Exception:
                 print('Error in nshot textbox')
+                self.e1.focus_set()
             else:
                 self.canvas.get_tk_widget().focus_set()
         self.opt.hide_trace = defaultdict(bool)
