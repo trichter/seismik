@@ -240,15 +240,12 @@ class MPLSeisPicker(object):
         l1 = tk.Label(root, text='shot')
         self.e1 = e1 = tk.Entry(root)
         e1.insert(0, str(self.nshot))
-        e1.bind('<Return>', self.new_shot)
         l2 = tk.Label(root, text='filter')
         self.e2 = e2 = tk.Entry(root)
         e2.insert(0, filter0)
-        e2.bind('<Return>', self.set_filter)
         l3 = tk.Label(root, text='autopicker')
         self.e3 = e3 = tk.Entry(root)
         e3.insert(0, picker0)
-        e3.bind('<Return>', self.set_picker)
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         l1.pack(side=tk.LEFT)
         e1.pack(side=tk.LEFT)
@@ -258,7 +255,17 @@ class MPLSeisPicker(object):
         e3.pack(side=tk.LEFT)
         toolbar.pack(side=tk.LEFT)
         self.plot('first_call')
+
+        e1.bind('<Return>', self.new_shot)
+        e1.bind('<FocusOut>', self.new_shot)
+        e2.bind('<Return>', self.set_filter)
+        e2.bind('<FocusOut>', self.set_filter)
+        e3.bind('<Return>', self.set_picker)
+        e3.bind('<FocusOut>', self.set_picker)
         canvas.mpl_connect('key_press_event', self.keypress)
+        canvas.mpl_connect('button_press_event',
+                           lambda event:canvas._tkcanvas.focus_set())
+
         print(__doc__)
         print(_key_doc)
 
