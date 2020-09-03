@@ -1,0 +1,67 @@
+Skriptsammlung für die Seismikauswertung, Geländeübungen Uni Jena
+
+Die Skripte umfassen das Vorbereiten und Picken der Daten,
+2D-Refraktionstomopgraphie mit FAST und diverse Plots.
+
+Dateien:
+bin/*
+py/*
+fast/*
+data_example/*
+
+Installation:
+
+* Repository herunterladen oder klonen
+* Dateien im bin Ordner ausführbar machen und in einen bin Ordner packen (export PATH=.:~/bin:$PATH)
+* Dateien im py Ordner für Python findbar machen (export PYTHONPATH=~/py:$PYTHONPATH)
+* FAST Ordner als Variable setzen (export FAST=~/fast)
+* Die obigen Befehle können z.B. in der Datei .bashrc hinterlegt werden
+
+* Anaconda installieren
+  - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  - bash Miniconda3-latest-Linux-x86_64.sh
+  - rm Miniconda3-latest-Linux-x86_64.sh
+  - conda config --add channels conda-forge
+* Conda environment installieren
+  - conda create -n seis obspy git utm cartopy ipython folium geographiclib pdbpp  # pyproj pyshp shapely tqdm h5py sympy gdal gcc_linux-64 gfortran_linux-64 statsmodels spyder jupyter pandas
+  - conda activate seis
+* Weitere Pakete installieren
+  - Benötigte Pakete: GMT5, tcshell, SeismicUnix, diverse lib32 Pakete für FAST und seismicunix
+  - sudo apt install tcsh gmt
+  - SeismicUnix: https://wiki.seismic-unix.org und https://wiki.seismic-unix.org/sudoc:su_installation
+  - TODO: Welche lib32-Pakete werden genau benötigt? Wenn Fehler beim Starten von FAST oder der Installation von SU auftreten, diese Fehler googeln, das gibt Hinweise auf fehlende lib32 Pakete.
+  -> Bitte um Rückmeldung, welche Befehle genau ausgeführt wurden, damit ich das hier ergänzen kann.
+
+Benutzung:
+* Skripte
+  - geo.py    Projiziert Koordinaten auf Linie und schreibt Dateien rec_xy.dat und sou_xy.dat für FAST-Skripte, muss entsprechend der Koordinaten-Datei angepasst werden
+  - map.py    erstellt Folium-Landkarte, muss entsprechend der Koordinaten-Datei angepasst werden
+  - bin/seispick   Plotting und Picking Tool: erstellt picks.txt und fb_all1.dat für FAST, siehe Hilfe (seispick -h), benötigt zum erstellen von fb_all1.dat Output von geo.py
+* Konkretes Vorbereitungen
+  - data_example Ordner kopieren und umbenennen
+  - Bei Bedarf Beispieldaten in RAW löschen und Messdaten kopieren
+  - seisconf.json und GEO Ordner: Dateien gemäß Kampagne anpassen
+  - map.py und geo.py anpassen
+* Skripte starten
+  - conda activate seis
+  - python map.py
+  - python geo.py
+  - seispick
+* Nun kommt FAST
+  - Verschieben von fb_all1.dat nach INV/fb_all.dat (oder Link setzen)
+  - xinv anpassen und ausführen
+  - Während der Inversion mit
+    + grep RMS log.*
+    + grep RMS log_*
+    + grep lambda log.* usw
+    schauen, ob alles glatt läuft
+  - dvn: Eventuell Ergebnisse nach der Inversion neu plotten
+  - GMT/plot_modell plottet finales Modell und Strahlwege
+  - GMT/plot_lcurve plottet RMS
+
+* Bonus - Mögliche Vorwärtsmodellierung:
+  - in xinv um Zeile 36 bei `goto FWD` oder `goto FWD2` Kommentarzeichen entfernen
+  - Forwärtsmodellierung mit xinv-Skript starten
+  - mit Skript fwd2synpicks.py Daten lesen und umwandeln
+  - seisonf.json anpassen und seispick starten
+  - synthetische Laufzeiten werden nun angezeigt und die Picks können gegebenfalls angepasst werden
