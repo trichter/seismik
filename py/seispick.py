@@ -4,10 +4,14 @@ usage picking tool: seispick  (needs seisconf.json)
 usage plotting tool: seispick RAW/{}.dat
 usage plotting tool: seispick RAW/{}.dat shot_number
 
-version 2020.09.03 add downsample option for faster? plotting
+version 2020.09.02 remove downsample option again
+                   instead create textboxes in Tkinter for faster plotting
+version 2020.09.01 add downsample option for faster? plotting
                    supress ObsPy warning when reading data
 version 2019.09 add delay config option for seisconf.json
 version 2019.05
+
+Upon start set terminal to "always on top" and enlarge matplotlib figure.
 """
 
 _key_doc = """
@@ -33,12 +37,12 @@ a/A: apply autopicker for traces on the right/left
 m: fit line to two points
 x: replot
 
-Specify shot number in textbox 1
-Specify downsample factor in textbox 2
-Specify filter in textbox 3: HP/LP/BP freq1 (freq2) (order) (zerophase 0/1)
-Specify autopicker in textbox 4: threshold min_time_template max_time_template min_time_data max_time_data
-"""
+I: start IPython session
 
+Set shot number in textbox 1
+Set filter in textbox 2: HP/LP/BP freq1 (freq2) (order) (zerophase 0/1)
+Set autopicker in textbox 3: threshold min_time_template max_time_template min_time_data max_time_data
+"""
 
 from collections import defaultdict
 import json
@@ -47,16 +51,17 @@ import sys
 from types import SimpleNamespace
 import warnings
 
-import matplotlib.pyplot as plt
-from matplotlib.widgets import TextBox
+import matplotlib as mpl
+MS = mpl.rcParams['lines.markersize']
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 import numpy as np
 from obspy import read
 from obspy.signal.cross_correlation import correlate_template
 from scipy.linalg import lstsq
-
-import matplotlib as mpl
-MS = mpl.rcParams['lines.markersize']
+import tkinter as tk
 
 
 def load_picks(fname):
@@ -221,35 +226,39 @@ class MPLSeisPicker(object):
             self.picks = self.all_picks[self.picktype]
             # calculation for backshots and for writing fb_all.dat
             self.stuff = calc_backshots(shotpoints, spreads)
-        self.fig, self.ax = fig, ax = plt.subplots()
-        plt.subplots_adjust(bottom=0.1)
-        self.plot('first_call')
-        fig.canvas.mpl_disconnect(fig.canvas.manager.key_press_handler_id)
-        fig.canvas.mpl_connect('key_press_event', self.keypress)
-
-        axbox0 = fig.add_axes([0.15, 0.02, 0.03, 0.04])
-        textbox0 = TextBox(axbox0, 'Shot', initial=str(self.nshot))
-        textbox0.on_submit(self.new_shot)
-
-        axbox1 = fig.add_axes([0.3, 0.02, 0.25, 0.04])
         filter0 = 'LP 100 2 1'
-        textbox1 = TextBox(axbox1, 'Filter', initial=filter0)
-        textbox1.on_submit(self.set_filter)
-        if self.pickmode:
-            axbox2 = plt.axes([0.65, 0.02, 0.25, 0.04])
-            picker0 = '0.8 -1e-3 1e-3 -2e-3 3e-3'
-            textbox2 = TextBox(axbox2, 'Autopicker', initial=picker0)
-            textbox2.on_submit(self.set_picker)
-        else:
-            textbox2 = None
-        axbox3 = fig.add_axes([0.20, 0.02, 0.03, 0.04])
-        textbox3 = TextBox(axbox3, 'DS', initial=1)
-        textbox3.on_submit(self.set_downsample)
-        self.boxes = SimpleNamespace(box0=textbox0, box1=textbox1,
-                                     box2=textbox2, box3=textbox3)
-        self.set_filter(filter0)
-        if self.pickmode:
-            self.set_picker(picker0)
+        picker0 = '0.8 -1e-3 1e-3 -2e-3 3e-3'
+
+        self.root = root = tk.Tk()
+        self.root.wm_title('seispick')
+        self.fig = Figure(figsize=(5, 4), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = canvas = FigureCanvasTkAgg(self.fig, master=root)
+        canvas.draw()
+        toolbar = NavigationToolbar2Tk(canvas, root, pack_toolbar=False)
+        toolbar.update()
+        l1 = tk.Label(root, text='shot')
+        self.e1 = e1 = tk.Entry(root)
+        e1.insert(0, str(self.nshot))
+        e1.bind('<Return>', self.new_shot)
+        l2 = tk.Label(root, text='filter')
+        self.e2 = e2 = tk.Entry(root)
+        e2.insert(0, filter0)
+        e2.bind('<Return>', self.set_filter)
+        l3 = tk.Label(root, text='autopicker')
+        self.e3 = e3 = tk.Entry(root)
+        e3.insert(0, picker0)
+        e3.bind('<Return>', self.set_picker)
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        l1.pack(side=tk.LEFT)
+        e1.pack(side=tk.LEFT)
+        l2.pack(side=tk.LEFT)
+        e2.pack(side=tk.LEFT)
+        l3.pack(side=tk.LEFT)
+        e3.pack(side=tk.LEFT)
+        toolbar.pack(side=tk.LEFT)
+        self.plot('first_call')
+        canvas.mpl_connect('key_press_event', self.keypress)
         print(__doc__)
         print(_key_doc)
 
@@ -372,9 +381,9 @@ class MPLSeisPicker(object):
         self.state.last_key = event.key
         self.state.last_xy = (event.xdata, event.ydata)
 
-    def set_filter(self, text):
+    def set_filter(self, event=None):
         """Called if filter box changes"""
-        filt = [_.lower() for _ in text.split()]
+        filt = [_.lower() for _ in self.e2.get().split()]
         map_ = {'bp': 'bandpass', 'lp': 'lowpass', 'hp': 'highpass'}
         try:
             ftype = map_[filt[0]]
@@ -393,45 +402,32 @@ class MPLSeisPicker(object):
         else:
             self.opt.filter = dict(type=ftype, **kw)
             print(f'You chose filter {self.opt.filter}')
-        self.boxes.box2.stop_typing()
+            self.canvas.get_tk_widget().focus_set()
 
-    def set_picker(self, text):
+    def set_picker(self, event=None):
         """Called if autopicker box changes"""
         try:
-            thres, t1, t2, t3, t4 = [float(_) for _ in text.split()]
+            thres, t1, t2, t3, t4 = [float(_) for _ in self.e3.get().split()]
         except Exception:
             print('Error in picker textbox')
         else:
             self.opt.autopick = SimpleNamespace(thres=thres, t1=t1, t2=t2,
                                                 t3=t3, t4=t4)
             print(f'You chose autopicker {self.opt.autopick}')
-        self.boxes.box2.stop_typing()
+            self.canvas.get_tk_widget().focus_set()
 
-    def set_downsample(self, text):
-        """Called if downsample box changes"""
-        try:
-            ds = int(text)
-        except Exception:
-            print('Error in downsample textbox')
-        else:
-            self.opt.downsample = ds
-            print(f'You chose downsample factor {self.opt.downsample}')
-        self.boxes.box3.stop_typing()
-
-    def new_shot(self, text=None):
+    def new_shot(self, event=None):
         """Called if shot box changes or if +/- pressed"""
-        if text is None:
-            self.boxes.box0.set_val(self.nshot)
-#            self.boxes.box0.text = str(self.nshot)
-#            self.boxes.box0.text_disp.remove()
-#            self.boxes.box0.text_disp = self.boxes.box0._make_text_disp(
-#                self.boxes.box0.text)
+        if event is None:
+            self.e1.delete(0, tk.END)
+            self.e1.insert(0, str(self.nshot))
         else:
             try:
-                self.nshot = int(text)
+                self.nshot = int(self.e1.get())
             except Exception:
                 print('Error in nshot textbox')
-        self.boxes.box0.stop_typing()
+            else:
+                self.canvas.get_tk_widget().focus_set()
         self.opt.hide_trace = defaultdict(bool)
         self.plot('new_shot')
 
@@ -598,5 +594,5 @@ class MPLSeisPicker(object):
 
 
 def run_picker():
-    MPLSeisPicker(*sys.argv[1:])
-    plt.show()
+    p = MPLSeisPicker(*sys.argv[1:])
+    tk.mainloop()
