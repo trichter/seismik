@@ -4,8 +4,8 @@ usage picking tool: seispick  (needs seisconf.json)
 usage plotting tool: seispick RAW/{}.dat
 usage plotting tool: seispick RAW/{}.dat shot_number
 
-version 2020.09 add downsample option for faster? plotting
-                supress ObsPy warning when reading data
+version 2020.09.03 add downsample option for faster? plotting
+                   supress ObsPy warning when reading data
 version 2019.09 add delay config option for seisconf.json
 version 2019.05
 """
