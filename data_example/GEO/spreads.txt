@@ -1,0 +1,11 @@
+# describe the spreads
+# you can mute channels with mute:1,4-7
+# you can switch the polarity with polarity:1,4-7
+# you can switch the order with order:1-24 order:49-72
+# example:
+# spread receivers shots
+#1      1-96    1-37   order:1-24 order:49-72 mute:4-7,9 polarity:30-40
+#2      25-120  38-49
+# spread receivers shots
+1      1-120     1-24    mute:97-120
+2     25-144     25-32

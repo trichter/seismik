@@ -1,0 +1,9 @@
+# describe shot point position
+# you can explicitly give the geofon number (this should be done for the first shot in any case)
+# alternatively you can specify or change the spacing with !X (shot at every Xth geofon)
+# you can also specify +Z or -Z, then the spacing is changed by this value for a single shot point
+# the last shot point must be specified, this can be done with a X
+# shot_point   geofon_number
+1   1
+2  !2
+32 X
