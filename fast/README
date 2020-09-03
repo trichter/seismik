@@ -1,0 +1,26 @@
+
+
+There is an error in the way the model and interface file formats
+are described in the documentation. The correct read/write code 
+should like like:
+
+For a 3D model:
+
+do k=1,nz
+   do j=1,ny
+      read(10) (vel(i,j,k),i=1,nx)
+   enddo
+enddo
+ 
+For a 2D model:
+ 
+do k=1,nz
+   read(10) (vel(i,k),i=1,nx)
+enddo
+ 
+For an interface/bathymetry file:
+ 
+do j=1,ny
+   read(10) (inter(i,j),i=1,nx)
+enddo
+

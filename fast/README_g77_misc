@@ -1,0 +1,10 @@
+Use useful_tools/compile_misc.csh to compile all programs with g77.  Binaries will 
+be output in the directory ../bin.
+
+Note:  Take special care to set the values correctly for you modelling / inversion
+runs ray.par, and to increase nnzmax and ndmax in inverse.f / inverse_2d.f as needed
+before compiling.  
+
+Drew Brenders (brenders@geoladm.geol.queensu.ca)
+
+

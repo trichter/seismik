@@ -1,0 +1,9 @@
+  file name   int2 cmin  cmax   cinc  scalef
+'vel.true'      1  5.5    7.0    .1   .001 
+'vel0'          1  5.5    7.0    .1   .001 
+'fd01.times'    1  0.     50.    1.   1.526e-3 
+'fd50.times'    1  0.     50.    1.   1.526e-3 
+'fd99.times'    1  0.     50.    1.   1.526e-3 
+'num.cell'      1  0.     1000.  10.0   1. 
+'vel.mod'       1  5.5    7.0    .1   .001 
+'diff.out'      1 -0.3    0.3    .05  .001 

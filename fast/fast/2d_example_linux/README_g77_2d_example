@@ -1,0 +1,59 @@
+Converted files for g77 compilation and testing.  
+Sorry, haven't done the 3d_example files yet.
+
+Drew Brenders (brenders@geoladm.geol.queensu.ca)
+
+Files converted from Solaris binary format to Linux binary format:
+
+	fd*.picks - all first arrival picks for each shot
+	vel0	- starting 1D velocity model for input into FAST
+	vel.1d  - starting 1D velocity model (from using vmodel with vel1d.in)
+	vel.true - true velocity model
+
+	final1/vel* - velocity models output from iterations 1-5 of FAST
+	final2/vel* - velocity models output from iterations 1-5 of FAST
+	final2/num.cell - cell hit count for rays travelling through model 
+	true/vel.true - vel.true as above - the true model used to obtain the pick times
+
+Files were converted by using
+	misc/rec_ascii - run on a Solaris workstation to output ascii formatted first
+					arrival picks
+
+        useful_tools/convert_picks.csh - run on a Linux workstation to call 
+						misc/rec_binary to output binary formatted 
+						first arrival picks
+
+	useful_tools/vel_ascii.f - compiled with f77 and run on a Solaris workstation to 
+					output ascii versions of the velocity models used in
+					the 2d_example
+
+	useful_tools/convert_ascii_vel.csh - run on a Linux workstation with Seismic Unix
+					installed (available at http://www.cwp.mines.edu/cwpcodes/)
+					This script uses the velocity files output in ascii
+					format from the program above, then calls the following SU
+					tools :
+						transp   (transpose output)
+						ascii2su (uses a2b, suaddhead, sushw )
+						su2bin   (uses sustrip )
+						sep2fast (see below)
+
+	useful_tools/sep2fast.f -  compiled with g77 to read in a binary file of an array of 
+					values declared as real, and output a binary file of an 
+					array of values declared as 2-byte integers, ordered for
+					input into FAST
+
+	useful_tools/fast2sep.f  -  compiled with g77 to read in a binary file of an array of 
+					values declared as 2-byte integers, ordered for	input into 
+					FAST, and output a a binary file of an array of values 
+					declared as real, suitable for useful to SU format
+
+Another useful script to be copied to the 2d_example directory before running the 2d_example:
+
+	useful_tools/cleanfast.csh - erases all files output from an application of FAST (either 
+					a failed or a successful run).  Useful for resetting to
+					original directory.
+
+Note that before compiling and running FAST, you MUST ensure that the values in ray.par (especially
+nwrite), fd.par, and inverse_2d.f / inverse.f (nnzmax and ndmax in particular) are correct / large 
+enough.
+

@@ -1,0 +1,39 @@
+c
+c     version 1.0  Nov 1993
+c
+c     parameter statement for RAY
+c
+c     ----------------------------------------------------------------
+c
+c     2D
+c
+      parameter(nxmax=10000, nymax=1, nzmax=2000, 
+     +          nximax=5000, nyimax=1, nzimax=1000,
+     +          nray=15000, nsources=1999, nwrite=1, ncolour=10)
+c
+c
+c     3D
+c
+c      parameter(nxmax=2500, nymax=500, nzmax=200, 
+c     +          nximax=1250, nyimax=250, nzimax=200,
+c     +          nray=10000, nsources=2500, nwrite=10000, ncolour=10)
+c
+c     nxmax - model nodes in x direction for forward calculation
+c
+c     nymax - model nodes in y direction for forward calculation
+c
+c     nzmax - model nodes in z direction for forward calculation
+c
+c     nximax - model cells in x direction for inverse grid
+c
+c     nyimax - model cells in y direction for inverse grid
+c
+c     nzimax - model cells in z direction for inverse grid
+c
+c     ncolour - colours
+c
+c     nray - points defining a single ray path
+c
+c     nsources - shots
+c
+c     nwrite - number of elements of data kernel to write at one time

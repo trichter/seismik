@@ -1,0 +1,383 @@
+diff -u -r ../fast+brender/fd/Makefile fd/Makefile > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/blkdat.f fd/blkdat.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/fd.com fd/fd.com > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/fd.doc fd/fd.doc > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/fd.par fd/fd.par > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/findiff.f fd/findiff.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/findiff2d.f fd/findiff2d.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/main.f fd/main.f > fast_g77_big+marco.diff
+--- ../fast+brender/fd/main.f	2011-04-19 12:32:30.000000000 +0200
++++ fd/main.f	2011-04-19 12:55:14.000000000 +0200
+@@ -58,9 +58,14 @@
+       real xsource(nsources),ysource(nsources),zsource(nsources),
+      +     hwmin,lambda,omin(nsources),omax(nsources),
+      +     vabove(nsources),vbelow(nsources),ireal(nxmax)
+-      character*10 tfile,rfile,t2file
+-      character*9 ofile
+-      character*6 r2file
++c-kb
++c      character*10 tfile,rfile,t2file
++c      character*9 ofile
++c      character*6 r2file
++      character*15 tfile,rfile,t2file
++      character*15 ofile
++      character*15 r2file
++c-kb
+       character*1 alog
+       character ifile*80
+ c                 
+@@ -86,11 +91,19 @@
+ c
+ c     initialize parameters
+ c
++c-kb
++c      data xsource/nsources*-9999999./,
++c     +     isource/nsources*-1/,tfile,rfile,r2file,ofile,t2file
++c     +     /'fd  .times','fd  .picks','rec.  ','fd  .calc',
++c     +      'fr  .times'/,omin/nsources*0./,omax/nsources*0./,
++c     +     vabove/nsources*-1./,vbelow/nsources*-1./
++c
+       data xsource/nsources*-9999999./,
+      +     isource/nsources*-1/,tfile,rfile,r2file,ofile,t2file
+-     +     /'fd  .times','fd  .picks','rec.  ','fd  .calc',
+-     +      'fr  .times'/,omin/nsources*0./,omax/nsources*0./,
++     +     /'fd    .times','fd    .picks','rec.    ','fd    .calc',
++     +      'fr   .times'/,omin/nsources*0./,omax/nsources*0./,
+      +     vabove/nsources*-1./,vbelow/nsources*-1./
++c-kb
+ c
+       write(6,335)
+ 335   format(/'FD: finite difference traveltime calculation')
+@@ -382,9 +395,17 @@
+          if(imodxy.eq.1) call pltmodxy(imodxz,imodyz,igrid)
+ c
+          if(itimes.eq.2) then
+-           id1=is/10
+-           id2=is-id1*10
+-           rfile(3:4)=char(id1+48)//char(id2+48)
++c-kb
++c           id1=is/10
++c           id2=is-id1*10
++c           rfile(3:4)=char(id1+48)//char(id2+48)
++           id1=is/1000
++           id2=(is-id1*1000)/100
++           id3=(is-id1*1000-id2*100)/10
++           id4=is-id1*1000-id2*100-id3*10   
++           rfile(3:6)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++c-kb
+ c
+            open(28, file=rfile, form='unformatted', status='old')
+          end if
+@@ -534,10 +555,20 @@
+ c
+          if(iout.eq.1.or.iout.eq.2.or.(iout.eq.3.and.istype.eq.0))
+      +   then
+-           id1=is/10
+-           id2=is-id1*10
+-           tfile(3:4)=char(id1+48)//char(id2+48)
+-           t2file(3:4)=char(id1+48)//char(id2+48)
++c-kb
++c           id1=is/10
++c           id2=is-id1*10
++c           tfile(3:4)=char(id1+48)//char(id2+48)
++c           t2file(3:4)=char(id1+48)//char(id2+48)
++           id1=is/1000
++           id2=(is-id1*1000)/100
++           id3=(is-id1*1000-id2*100)/10
++           id4=is-id1*1000-id2*100-id3*10
++           tfile(3:6)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++           t2file(3:6)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++c-kb
+ c
+            if(istype.ne.1) then
+              open(36, file=tfile, form='unformatted') 
+@@ -555,14 +586,26 @@
+          end if
+ c
+          if(abs(itimes).eq.1) then
+-           id1=is/10
+-           id2=is-id1*10
+-           ofile(3:4)=char(id1+48)//char(id2+48)
++c-kb
++c           id1=is/10
++c           id2=is-id1*10
++c           ofile(3:4)=char(id1+48)//char(id2+48)
++           id1=is/1000
++           id2=(is-id1*1000)/100
++           id3=(is-id1*1000-id2*100)/10
++           id4=is-id1*1000-id2*100-id3*10
++           ofile(3:6)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++c-kb
+ c
+            open(28, file=ofile, form='unformatted') 
+ c
+            if(itimes.eq.-1) then
+-             r2file(5:6)=char(id1+48)//char(id2+48)
++c-kb
++c             r2file(5:6)=char(id1+48)//char(id2+48)
++             r2file(5:8)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++c-kb
+              open(27, file=r2file, form='unformatted') 
+            else
+              rewind(27)
+diff -u -r ../fast+brender/fd/misc.f fd/misc.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/model.f fd/model.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/plt.f fd/plt.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/stencils.f fd/stencils.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/stencils2d.f fd/stencils2d.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/fd/time.f fd/time.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/1dvel.f misc/1dvel.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/1dvel2.f misc/1dvel2.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/2dvel.f misc/2dvel.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/add.f misc/add.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/add2.f misc/add2.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/anomaly.f misc/anomaly.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/anomaly3.f misc/anomaly3.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/anomaly4.f misc/anomaly4.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/anomaly5.f misc/anomaly5.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/anomaly6.f misc/anomaly6.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/ave.f misc/ave.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/ave2.f misc/ave2.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/ave4.f misc/ave4.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/bound.f misc/bound.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/copy.f misc/copy.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/difference.f misc/difference.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/difference2.f misc/difference2.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/gmtslice.f misc/gmtslice.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/gmtslice_2d.f misc/gmtslice_2d.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/gmtslicep.f misc/gmtslicep.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/h2z.f misc/h2z.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/init2.f misc/init2.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/init3.f misc/init3.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/inverse.f misc/inverse.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/inverse_2d.f misc/inverse_2d.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/inverse_old.f misc/inverse_old.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/ireg.f misc/ireg.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/ireg_2d.f misc/ireg_2d.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/istop.f misc/istop.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/istop2.f misc/istop2.f > fast_g77_big+marco.diff
+--- ../fast+brender/misc/istop2.f	1996-08-30 22:05:15.000000000 +0200
++++ misc/istop2.f	2011-04-19 12:40:18.000000000 +0200
+@@ -46,8 +46,10 @@
+ c
+       read(14,*) lambda
+ c
+-      read(11,1) 
+-      read(11,1) 
++c     read(11,1) 
++c     read(11,1) 
++      read(11,*) 
++      read(11,*) 
+ 1     format(' ')
+ c
+       chimin=1.e20
+diff -u -r ../fast+brender/misc/lambda2.f misc/lambda2.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/lambda3.f misc/lambda3.f > fast_g77_big+marco.diff
+--- ../fast+brender/misc/lambda3.f	2011-04-19 12:32:30.000000000 +0200
++++ misc/lambda3.f	2011-04-19 12:40:19.000000000 +0200
+@@ -66,11 +66,11 @@
+           open(11, file='chi.values', status='old')
+           open(12, file='lambda.values', status='old')
+ c
+-          read(11,1)
+-          read(11,1)
++c         read(11,1)
++c         read(11,1)
+ 1         format(' ')
+-c          read(11,*)
+-c          read(11,*)
++           read(11,*)
++           read(11,*)
+ 
+           i=1
+ 100       read(11,5,end=99) pchi(i)
+diff -u -r ../fast+brender/misc/latave.f misc/latave.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/ray.par misc/ray.par > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/real2int.f misc/real2int.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/rec.f misc/rec.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/rec_ascii.f misc/rec_ascii.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/rec_binary.f misc/rec_binary.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/rec_deci.f misc/rec_deci.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/rec_diff.f misc/rec_diff.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/rec_noise.f misc/rec_noise.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/rec_noise2.f misc/rec_noise2.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/rec_offset.f misc/rec_offset.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/regrid.f misc/regrid.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/regrid_2d.f misc/regrid_2d.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/resamp.f misc/resamp.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/reset.f misc/reset.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/select2.f misc/select2.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/select3.f misc/select3.f > fast_g77_big+marco.diff
+--- ../fast+brender/misc/select3.f	1998-08-16 22:50:59.000000000 +0200
++++ misc/select3.f	2011-04-19 12:40:19.000000000 +0200
+@@ -65,8 +65,10 @@
+       open(11, file='chi.values', status='old')
+       open(12, file='lambda.values', status='old')
+ c
+-      read(11,1) 
+-      read(11,1) 
++c     read(11,1) 
++c     read(11,1) 
++      read(11,*) 
++      read(11,*) 
+ 1     format(' ')
+ c
+       i=1
+diff -u -r ../fast+brender/misc/smodel.f misc/smodel.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/update.f misc/update.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/velbuild.f misc/velbuild.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/velint.f misc/velint.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/vz.f misc/vz.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/xyz2bath.f misc/xyz2bath.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/z2h.f misc/z2h.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/misc/zero.f misc/zero.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/pltlib/nopltlib.f pltlib/nopltlib.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/pltlib/pltsub.f pltlib/pltsub.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/pltlib/xbuplot.c pltlib/xbuplot.c > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/pltlib/xpltlib.f pltlib/xpltlib.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/ray/Makefile ray/Makefile > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/ray/blkdat.f ray/blkdat.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/ray/main.f ray/main.f > fast_g77_big+marco.diff
+--- ../fast+brender/ray/main.f	2011-04-19 12:32:30.000000000 +0200
++++ ray/main.f	2011-04-19 12:38:07.000000000 +0200
+@@ -59,8 +59,12 @@
+      +        moophist(100),k2(nxmax,nymax),pick
+       real xpl(2),ypl(2),lambda,p1(3),p2(3),p3(3),p12(3),p13(3),
+      +     l1oop(100),l2oop(100),msoop,nix,niy,niz
+-      character ierr*1,reply*1,tfile*10,rfile*10,rtfile*11,tlab*12,
+-     +          intfile*80,r2file*9,t2file*10
++c-kb
++c      character ierr*1,reply*1,tfile*10,rfile*10,rtfile*11,tlab*12,
++c     +          intfile*80,r2file*9,t2file*10
++      character ierr*1,reply*1,tfile*15,rfile*15,rtfile*15,tlab*15,
++     +          intfile*80,r2file*15,t2file*15
++c-kb
+ c
+       namelist /pltpar/ iplot,iroute,iray,ircol,iscol,itrms,irec,irefr,
+      +                  iseg,xwndow,ywndow,ibcol,ifcol,colour,i2d,
+@@ -83,9 +87,15 @@
+ c
+ c     initialize parameters
+ c
+-      data tfile,rfile,rtfile,r2file,t2file/'fd  .times','fd  .picks',
+-     +     'ray  .times','fd  .refl','fr  .times'/,
++c-kb
++c      data tfile,rfile,rtfile,r2file,t2file/'fd  .times','fd  .picks',
++c     +     'ray  .times','fd  .refl','fr  .times'/,
++c     +      itrace/nsources*0/,oophist/100*0/,moophist/100*0/
++      data tfile,rfile,rtfile,r2file,t2file/'fd    .times',
++     +     'fd    .picks',
++     +     'ray    .times','fd    .refl','fr    .times'/,
+      +      itrace/nsources*0/,oophist/100*0/,moophist/100*0/
++c-kb
+ c
+       write(6,335)
+ 335   format('RAY: ray tracing')
+@@ -102,7 +112,9 @@
+       ioop=0
+       noopmin=10
+       iyz=0
+-      nptmax=0
++c M.P. 18.04.2011 change maximum number of node points
++c                 which a ray can cross
++      nptmax=nxmax+nymax+2*nzmax
+       uave=.05
+       nlc=0
+       nk=0
+@@ -266,7 +278,8 @@
+       end if
+ c
+       if(nptmax.gt.0) 
+-     +  open(49, file='rays.xyz', form='unformatted')
++     +  open(49, file='rays.xyz', status='unknown')
++c     +  open(49, file='rays.xyz', form='unformatted')
+ c
+       if(itomo.gt.0) then
+         open(39, file='inv.header', status='old')
+@@ -439,14 +452,31 @@
+       is=itrace(iss) 
+ c
+       nsource=nsource+1
+-      id1=is/10
+-      id2=is-id1*10
+-      rfile(3:4)=char(id1+48)//char(id2+48)
++c-kb
++c      id1=is/10
++c      id2=is-id1*10
++c      rfile(3:4)=char(id1+48)//char(id2+48)
++c      if(irec.ge.2) go to 7000
++c      tfile(3:4)=char(id1+48)//char(id2+48)
++c      t2file(3:4)=char(id1+48)//char(id2+48)
++c      rtfile(4:5)=char(id1+48)//char(id2+48)
++c      r2file(3:4)=char(id1+48)//char(id2+48)
++      id1=is/1000
++      id2=(is-id1*1000)/100
++      id3=(is-id1*1000-id2*100)/10
++      id4=is-id1*1000-id2*100-id3*10
++      rfile(3:6)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
+       if(irec.ge.2) go to 7000
+-      tfile(3:4)=char(id1+48)//char(id2+48)
+-      t2file(3:4)=char(id1+48)//char(id2+48)
+-      rtfile(4:5)=char(id1+48)//char(id2+48)
+-      r2file(3:4)=char(id1+48)//char(id2+48)
++      tfile(3:6)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++      t2file(3:6)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++      rtfile(4:7)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++      r2file(3:6)=char(id1+48)//char(id2+48)//char(id3+48)
++     +//char(id4+48)
++c-kb
+       if(iout.eq.1) open(16, file=rtfile, form='unformatted')
+       if(istype.eq.1) open(53, file=r2file, form='unformatted')
+ c
+@@ -1213,7 +1243,7 @@
+         end if
+       end if
+ c
+-      if(nptmax.gt.0) then
++      if(nptmax.gt.0.and.iray.lt.2) then
+         if(npts.lt.nptmax) then
+           do i=npts+1,nptmax
+              xray(i)=-999999. 
+@@ -1221,9 +1251,18 @@
+              zray(i)=-999999. 
+           enddo
+         end if
+-        write(49) (xray(i),i=1,nptmax)
+-        write(49) (yray(i),i=1,nptmax)
+-        write(49) (zray(i),i=1,nptmax)
++        write(49,*)xs,ys,zs,xp,yp,zp
++         i=1
++9998     if(xray(i).gt.-999990.)then
++         write(49,*) xray(i),yray(i),zray(i)
++         end if
++         i=i+1
++         if(i.le.nptmax)then
++         go to 9998
++         end if  
++c        write(49) (xray(i),i=1,nptmax)
++c        write(49) (yray(i),i=1,nptmax)
++c        write(49) (zray(i),i=1,nptmax)
+       end if
+ c
+       go to 1000
+diff -u -r ../fast+brender/ray/model.f ray/model.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/ray/plt.f ray/plt.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/ray/ray.com ray/ray.com > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/ray/ray.par ray/ray.par > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/ray/time.f ray/time.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/ray/tomo.f ray/tomo.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/zslice/Makefile zslice/Makefile > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/zslice/blkdat.f zslice/blkdat.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/zslice/main.f zslice/main.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/zslice/misc.f zslice/misc.f > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/zslice/zslice.com zslice/zslice.com > fast_g77_big+marco.diff
+diff -u -r ../fast+brender/zslice/zslice.par zslice/zslice.par > fast_g77_big+marco.diff

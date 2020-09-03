@@ -1,0 +1,80 @@
+
+namelist /pltpar/ 
+imodxz
+imodxy
+imodyz
+iplot
+iout
+inode
+itimes
+igrid
+iclear
+iwrite
+icol 1 - grid line
+     2 - source
+     3 - outter model box
+     4 - source node
+     5 - node normally timed
+     6 - node timed using 2D or 1D operator in 3D, or 1D operator in 2D
+     7 - node timed in source box
+     8 - node timed using headwave operator
+ibcol
+ifcol
+iroute
+iseg
+xwndow
+ywndow
+colour
+nodeht
+ttunc
+ 
+namelist /axepar/ 
+iaxlab
+albht
+sep
+xtmin
+xtmax
+xmm
+ntickx
+ndecix
+ytmin
+ytmax
+ymm
+nticky
+ndeciy
+ztmin
+ztmax
+zmm
+ntickz
+ndeciz
+xzxorig
+xzyorig
+yzxorig
+yzyorig
+xyxorig
+xyyorig
+ 
+namelist /propar/ 
+iorder
+istop
+i2d
+reverse
+nreverse
+tmax
+ttmin - a time is replaced if it is decreased by at least this much
+tthwmin - decreased time when counting head wave operators used 
+          must be at least this much
+hwmin - as a percentage of total model nodes, there must be at 
+        least this many times replaced for another reversal to happen
+trmin - the maximum time decreased must be greater than this for 
+        another reversal to happen
+ 
+namelist /srcpar/ 
+isource
+xsource
+ysource
+zsource
+nptsrc
+inear
+vabove
+vbelow

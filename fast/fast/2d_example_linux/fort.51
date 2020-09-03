@@ -1,0 +1,17 @@
+
+Enter input file name
+
+Enter npts in x,z directions
+
+Enter data multiplier
+
+Enter  1  to mask unsampled cells
+
+model dimensions:
+-----------------
+xmin, xmax:      0.000   300.000
+ymin, ymax:      0.000     0.000
+zmin, zmax:      0.000    12.000
+number of model nodes in each direction (x,y,z): 601   1  25
+total number of model nodes:                           15025
+node spacing:   0.500 km

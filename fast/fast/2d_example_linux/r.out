@@ -1,0 +1,70 @@
+
+source    xrec     yrec     zrec   i   j   k      x        y        z   npts prob
+
+source number:                                        1
+number of rays/points traced:                       172     33673
+number of rays failed to reach source:                0
+number of rays starting at source location:           0
+average/maximum number of points defining ray:      196       382
+
+source    xrec     yrec     zrec   i   j   k      x        y        z   npts prob
+
+source number:                                       25
+number of rays/points traced:                       244     40182
+number of rays failed to reach source:                0
+number of rays starting at source location:           0
+average/maximum number of points defining ray:      165       384
+
+source    xrec     yrec     zrec   i   j   k      x        y        z   npts prob
+
+source number:                                       50
+number of rays/points traced:                       299     52291
+number of rays failed to reach source:                0
+number of rays starting at source location:           0
+average/maximum number of points defining ray:      175       342
+
+source    xrec     yrec     zrec   i   j   k      x        y        z   npts prob
+
+source number:                                       75
+number of rays/points traced:                       244     39865
+number of rays failed to reach source:                0
+number of rays starting at source location:           0
+average/maximum number of points defining ray:      163       384
+
+source    xrec     yrec     zrec   i   j   k      x        y        z   npts prob
+   99  128.000    0.000    0.010 407   1  25  203.209    0.000   12.000  175 >
+   99  129.000    0.000    0.010 408   1  25  203.500    0.000   12.000  174 >
+   99  130.000    0.000    0.010 408   1  25  203.534    0.000   12.000  172 >
+   99  131.000    0.000    0.010 408   1  25  203.538    0.000   12.000  170 >
+   99  132.000    0.000    0.010 408   1  25  203.542    0.000   12.000  168 >
+   99  133.000    0.000    0.010 408   1  25  203.547    0.000   12.000  166 >
+   99  134.000    0.000    0.010 408   1  25  203.554    0.000   12.000  164 >
+   99  135.000    0.000    0.010 408   1  25  203.562    0.000   12.000  162 >
+   99  136.000    0.000    0.010 408   1  25  203.573    0.000   12.000  160 >
+   99  137.000    0.000    0.010 408   1  25  203.591    0.000   12.000  158 >
+   99  138.000    0.000    0.010 408   1  25  203.665    0.000   12.000  156 >
+   99  139.000    0.000    0.010 409   1  25  204.005    0.000   12.000  155 >
+   99  140.000    0.000    0.010 409   1  25  204.023    0.000   12.000  153 >
+   99  141.000    0.000    0.010 409   1  25  204.031    0.000   12.000  151 >
+   99  142.000    0.000    0.010 409   1  25  204.105    0.000   12.000  149 >
+   99  143.000    0.000    0.010 410   1  25  204.671    0.000   12.000  148 >
+   99  144.000    0.000    0.010 414   1  25  206.536    0.000   12.000  150 >
+   99  145.000    0.000    0.010 420   1  25  209.526    0.000   12.000  154 >
+   99  146.000    0.000    0.010 429   1  25  214.023    0.000   12.000  161 >
+
+source number:                                       99
+number of rays/points traced:                       172     29405
+number of rays failed to reach source:               19
+number of rays starting at source location:           0
+average/maximum number of points defining ray:      171       340
+
+------------------------------------------------------------------------
+total number of sources:                                 5
+total number of rays/points traced:                   1131    195416
+total number of rays failed to reach source:            19
+total number of rays starting at source location:        0
+average/maximum number of points defining ray:         173       384
+
+RMS traveltime residual for     1112 rays:     24.83296
+                   Normalized chi-squared:       0.9876
+

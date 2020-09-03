@@ -1,0 +1,23 @@
+#! /bin/csh
+
+set range =  0./300./0./12.0
+set scale = 0.0300/-0.120
+set file = yplot.ps
+set dx = 2.0
+set dz = 0.5
+
+set pal   = gpal
+set pal   = pal5
+
+xyz2grd y2d.slice -Gy2d.grd  -I$dx/$dz -R$range -V
+\rm $file   
+#-----------------------------------------------------------------------
+grdimage y2d.grd -C$pal  \
+         -Jx$scale -X1.1 -Y4.0 -V -K -0   >  $file   
+grdcontour y2d.grd -Cvel.con -Jx$scale -K -O >> $file   
+psbasemap -B50.f50.:"X (km)":/5.0f5.0:"Z (km)":WenS  \
+        -Jx$scale -R$range -V -O -K >> $file   
+psscale -C$pal    \
+         -D4.50/-1.2/6.0/0.25h -L -B":.velocity (m/s):" \
+         -V -O -0 >> $file   
+END

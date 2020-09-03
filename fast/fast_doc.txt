@@ -1,0 +1,927 @@
+ FAST
+
+Program package for First Arrival Seismic Tomography
+
+30 October 1998
+
+Written by Colin Zelt								(713) 527-4757
+Rice University, Department of Geology & Geophysics, MS-126		(713) 285-5214 (fax)
+6100 Main St, P.O. Box 1892						czelt@rice.edu
+Houston, TX 77251-1892		http://zephyr.rice.edu/department/faculty/zelt/fast.html
+
+Table of Contents
+							Page
+Overview						1
+Directories						2
+Description of miscellaneous codes		2
+Compiling codes					3
+2D models						3
+File formats					3
+Active files						4
+Special files					5
+Input files						7
+Response files					12
+Example directories				13
+Creating 3D models				14
+Tips on running an inversion			14
+Plotting models with GMT scripts			15
+Plotting models and other files with zslice		15
+Where to start					16
+Known problems					17
+
+Overview
+
+This program package is for 2D and 3D first arrival traveltime tomography.  The models are 
+parameterized on a uniform square grid (velocities specified at equal node spacing in the x,y,z 
+directions).  The inverse grid is cell-based with constant cell size in each direction, but the sizes 
+may be different in the x,y,z directions.  The node spacing used for the forward grid must divide 
+equally into the x,y,z lengths of the model, and the cell size of the inverse grid must also divide 
+equally into the x,y,z lengths of the model. The forward calculation of traveltimes and raypaths 
+uses the Vidale (1988, 1990) scheme modified to handle large velocity contrasts according to the 
+method of Hole and Zelt (1995). Sources and receivers may be anywhere in the model, although 
+padding the model with at least a few nodes all around is a good idea to avoid having rays hit the 
+edge of the model (and terminate).  A point source is assumed.  The tomographic method is 
+regularized inversion incorporating a user-specified combination of smallest, flattest and smoothest 
+perturbation constraints, the weights of each being allowed to vary with depth.  The regularization 
+is a jumping method in that the constraints are applied to the model perturbation with respect to a 
+background model (usually the starting model). A starting model and iterative approach is 
+employed in which new ray paths are calculated for each iteration. The sparse linear system of 
+equations is solved using the LSQR variant of the conjugate gradient method described by Nolet 
+(1987).  An interface may be specified above which the model is held fixed, to allow either a layer 
+stripping procedure or the consideration of marine data in which the interface is the bathymetric 
+surface.  The size of the velocity update at each iteration may be bounded according to user-
+specified limits.  The forward modeling and most aspects of the inverse algorithm are described in 
+Zelt and Barton (1998).
+
+The package also includes x-window graphics utilities for interactive plotting of ray paths, models, 
+time files, interfaces, etc. and generation of postscript files (the same graphics package used by 
+rayinvr).  All codes are written in fortran except for the lowest level x graphics libraries which are 
+written in C.  The codes were developed on SPARC SUN workstations, but should be adaptable 
+to any platform with fortran and C compilers without too much effort.  It is not necessary to use 
+the x graphics capabilities to compile or run the codes or create the postscript files.  
+
+References cited
+Hole, J. A., and B. C. Zelt, Three-dimensional finite-difference reflection travel times, Geophys. J. Int., 121, 
+427-434, 1995.
+Nolet, G., Seismic wave propagation and seismic tomography, in Seismic Tomography, ed. G. Nolet, Reidel, 
+Dordecht, 1-24, 1987.
+Vidale, J. E., Finite-difference calculation of traveltimes Bull. Seismol. Soc. Am., 78, 2062-2076, 1988.
+Vidale, J. E., Finite-difference calculation of traveltimes in three dimensions, Geophysics, 55, 521 -526, 1990.
+Zelt, C.A. and P. J. Barton, Three-dimensional seismic refraction tomography: A comparison of two methods 
+applied to data from the Faeroe Basin, J. Geophys. Res., 103, 7187-7210, 1998.
+
+Directories
+
+fd			source code for finite difference eikonal solver
+ray			source code for raypath and data kernel calculation
+misc			miscellaneous source codes
+zslice			source code for quick general purpose plotting of almost everything except
+			raypaths; includes 3D data volumes as x, y, or z slices, plots of 2D data 
+			grids and interface/bathymetry files
+pltlib			plot libraries for X-windows screen graphics and postscript file generation
+			(same as for rayinvr package)
+2d_example			input files and output  files (results) for a 2D example
+3d_example			input files and output  files (results) for a 3D example
+
+Description of some miscellaneous codes
+
+Only the most important programs are described.  The others are similar and/or mostly simple 
+utility programs and the purpose and I/O for each can be determined by looking at the source code 
+and comments therein.
+
+anomaly	add rectangular velocity anomalies to a 3D background model
+difference	calculate the difference between two 3D data volumes
+difference2	calculate the relative difference between two 3D data volumes; the output file
+		'diff.out' has values in percent*100, e.g. 5% would be stored in integer*2 as 500.
+gmtslice	output slices of 3D data volume as xyz files for input to gmt plotting script
+		yplot or zplot
+gmtslice_2d	output slice of 2D data volume as xyz file for input to gmt plotting script yplot
+inverse		calculate 3D slowness perturbation using regularized inversion
+inverse_2d	calculate 2D slowness perturbation using regularized inversion
+ray.par		fortran parameter file that contains the dimensions for all the arrays for all the misc
+		programs (except inverse and inverse_2d have some of their parameter statements
+		inside them)
+rec		make a binary pick file with xyz geometry but all pick times set to zero
+rec_ascii	convert a binary pick file to ascii
+rec_binary	convert an ascii pick file to binary
+rec_noise	add noise to pick files using a constant user-specified standard deviation
+rec_noise2	add noise to pick files using the standard deviation in the 5th column of the pick
+		files (see section on file formats below)
+regrid		regrid a 3D data volume from the inverse cell parameterization to the forward node
+		parameterization
+regrid_2d	regrid a 2D data volume from the inverse cell parameterization to the forward node
+		parameterization
+reset		reset the velocities above an interface to those in the background model and those
+		below according to specified velocity bounds
+velbuild	build a 3D velocity model from a 1D velocity depth profile or from 1 or 2 rayinvr
+		models
+vz		output a velocity depth profile from a point within a 3D model
+xyz2bath	create an interface (or bathymetry) file from an ascii xyz file
+
+Compiling codes
+
+The major programs (fd, ray and zslice) each have make files in their directories and an "x" or "n" is 
+added to the front of their names depending on whether it is a X graphics program or a Non-
+graphics program.  Since fd is not a graphics program it is called nfd; ray can be made in either a 
+graphics or non-graphics version called xray or nray; zslice is only a graphics program, called 
+xzslice.  When compiling graphics programs, the makefiles should compile the relevant programs 
+in the pltlib directory, but if not, they can be compiled manually before hand using f77 or cc.  All 
+of the miscellaneous programs can be compiled with f77; using the highest possible optimization 
+might help to obtain the best performance, especially for inverse and inverse_2d.
+
+Before making fd, ray and zslice and the misc programs, you'll need to edit the parameter files in 
+each directory (fd.par, ray.par or zslice.par).  Inside each file you'll find the fortran parameter 
+statements that define the array sizes according to the forward and inverse grid size, and a few 
+other things.  The forward grid is node based and defined by nxmax, nymax, nzmax.  The inverse 
+grid is cell based and defined by nximax, nyimax, nzimax.  Inside fd, you'll also have to edit 
+fd.com depending on whether you're doing a 2D or 3D problem (read comments inside file).  
+You'll also have to edit the parameter statements inside inverse and inverse_2d (they appear 3 times 
+in each) depending on the number of picks and non-zero elements of the data kernel for your 
+problem.  The latter can be determined after running 'ray' and looking inside the file 
+'nzero.kernel'; the first entry is the number of non-zero elements of the data kernel (the second 
+entry is the total number of picks).  Note that the number of non-zero elements of the data kernel 
+can slightly increase with iteration as the ray paths change, probably by no more than a few 
+percent.
+
+For unix users, simply type 'make nfd' or 'make xray' for example to make the programs that have 
+makefiles.  You will need to edit the paths at the top of the makefiles according to where you want 
+the executables to reside and where the pltlib directory resides.
+
+2D models
+
+Set ny=1 and nyimax=1 for 2D problems. Also set i2d=1 inside the input file 'f.in'.  
+
+File formats
+
+The model, interface, calculated time files, and pick files are all binary format (in fortran use 
+form='unformatted' in the open statement).  The bit of fortran code to read a 3D model file with x, 
+y, z node limits of nx, ny, nz into a 3-dimensional array vel is as follows:
+
+do k=1,nz
+     do j=1,ny
+          do i=1,nx
+               read(10) vel(i,j,k)
+enddo
+
+The array vel is integer*2 with the velocities in units of m/s. For a 2D model, use:
+
+do k=1,nz
+     do i=1,nx
+          read(10) vel(i,k)
+enddo
+
+An interface or bathymetry file are formatted similarly:
+
+do j=1,ny
+     do i=1,nx
+          read(10) inter(i,j)
+enddo
+
+The array inter will be real*4  in units of meters. The traveltime pick files can be converted between 
+ascii and binary formats using the utility programs rec_ascii and rec_binary.  One file is needed for 
+each shot (or each receiver if modeling the data from receiver to shot as in the case of typical 
+marine data which have many more shots than receivers). An example of one file in ascii format is 
+as follows:
+
+     1.000    12.000     1.250     0.000     0.000 -1
+     1.000     1.000     0.020     5.215     0.050  1
+     1.500     1.000     0.020     5.173     0.050  1
+     2.000     1.000     0.020     5.207     0.050  1
+     2.500     1.000     0.020     5.340     0.050  1
+     3.000     1.000     0.020     5.348     0.050  1
+     3.500     1.000     0.020     5.344     0.050  1
+     4.000     1.000     0.020     5.338     0.050  1
+
+The first line is the shot line and contains the x,y,z of the shot (km) followed by 2 dummy values 
+of zero and -1.  The remaining lines each contain a single pick time using the format x,y,z of the 
+receiver (km), the time (unreduced in seconds), the uncertainty (s), and a value of 1 (for first 
+arrivals).  The fortran format used by the program 'rec_binary" to read such a file is (5f10.3,i3).  
+
+The 3D or 2D time files are in the same format as the models, also in integer*2, but the units of the 
+values are scaled according to the value of the parameter tmax in the 'f.in' input file for the 
+program fd.
+
+Active files
+
+All files for one problem should be in one directory.  Most files have specific names for input into 
+the various programs:
+
+vel.mod	current velocity model (archived and updated automatically)
+vel0		starting velocity model
+fd##.picks	pick file for shot ## (## can vary from 01 to 99).  To use more than 99 shots,
+		the codes will have to be edited in a few places.
+fd##.calc	calculated pick file for shot ##.  This is when you calculate data for a known model
+		for synthetic tests (like the examples provided).
+rec.in		a pick file with dummy times containing the receiver locations at which calculated
+		times will be output (if itimes=1 in the input file 'f.in' for the program fd).
+rec.##		pick files for shot ## with dummy times containing the receiver locations at which
+		calculated times will be output for shot ## (if itimes=-1 in the input file 'f.in' for the
+		program fd).
+fd##.times	calculated time file for shot ##. These are the first arrival times at each node of the
+		forward grid.
+bathymetry	interface file used to fix the model above an interface.
+vel#		archived velocity model representing the best model from the # non-linear iteration. 
+		Do not confuse these files with those named vel.#; these are the models 
+		corresponding to each value of lambda tested for each non-linear iteration from 
+		which the best model (vel#) is selected.
+log.file		the current log file; once archived for each non-linear iteration they are called log.#.
+f.in 		input parameters for fd
+r.in		input parameters for ray
+i.in		input parameters for inverse or inverse_2d
+l.in		input parameters for lambda2 or lambda3
+select.in	input parameters for select2 or select3
+reset.in		input parameters for reset
+s.in		input parameters for zslice
+sfile.in		input parameters for zslice (file specific parameters)
+
+Special files
+
+for.header and inv.header:
+
+The size of the forward and inverse grids must be user specified inside special files called 
+'for.header' and 'inv.header' and each must reside in the directory in which the modeling and 
+inversion is taking place.  Their format for the 3D example provided is:
+
+'for.header':
+0.000  42.000  0.000  24.000  0.000  14.000  0.400  106   61    36
+
+'inv.header':
+35      20      35
+
+Their format for the 2D example provided is:
+
+'for.header':
+0.000  300.000  0.000   0.000   0.000  12.000  0.500   601  1  25
+
+'inv.header':
+300       1      24
+
+The values in 'for.header' correspond to:  xmin,xmax,ymin,ymax,zmin,zmax,size,nx,ny,nz.  
+These are the model limits (km) and number of nodes in each direction and 'size' is the node 
+spacing (km). The values in 'inv.header' correspond to nxi,nyi,nzi.  These are the number of cells 
+in the x,y,z directions.  The fortran format of 'for.header' is (7f10.3,3i10) and for 'inv.header' it 
+is (3i10).
+
+nowrite:
+
+Having a file called 'nowrite' in the working directory reduces the screen output to simply the 
+name of each program and its purpose as it runs; otherwise, there will be more verbose output for 
+some of the programs.  
+
+inversion:
+
+The program run sequence is contained in a script file called 'inversion' in each example directory.  
+Slight differences between the 2 script files are for two reasons:  (1) 2D versus 3D, and (2) 
+because the 3D example uses an interface (bathymetry) to fix the model above it, whereas the 2D 
+example does not use an interface.  The scripts prompt the user at the beginning for the maximum 
+number of non-linear iterations (iterations at which the model is updated and new raypaths are 
+calculated) and the maximum number of lambda values to test for each non-linear iteration (lambda 
+is the tradeoff parameter that controls the weighting of data misfit versus the constraint equations; 
+see Zelt & Barton, 1998).  For the two examples provided, use 5 for each value to replicate the 
+results provided.  The path to the directory containing all the executables must be set near the top of 
+the inversion script file.
+
+Specific programs to use for 2D and 3D problems:
+
+	2D			3D	
+	inverse_2d		inverse
+	regrid_2d		regrid
+	
+
+Specific programs to use for problems with and without an interface:
+
+	no interface		interface	
+				ireg
+	lambda3		lambda2
+	istop2			istop
+	select3			select2
+				reset*
+* - you will need to use reset without an interface if you are imposing velocity bounds
+
+log.file:
+
+Most programs write to a log.file some important summary information, and the log file is used by 
+the inversion script to determine the value of lambda to select at each iteration.  The log.file is 
+automatically archived for each non-linear iteration into files called log.# where # is the iteration 
+number.  Make sure the file log.file is empty before running 'inversion' (this is done automatically 
+in the 'inversion' script files provided).  Note that the iteration number in the log.files assigns the 
+first iteration to the current (starting) model for that iteration, and that the results (misfit) for the 
+first lambda value tested actually corresponds to the second iteration.  This means for example, that 
+testing 5 lambda values for each non-linear iteration will result in 6 iterations of results in the log 
+files (the current/starting model results/misfit plus the iterations for testing the lambda values).  
+
+stop.in:
+
+This file is created and updated automatically by the inversion script and used to exit programs 
+inside the inner loop over lambda under certain circumstances. The only time the user needs to deal 
+with it is to run some of the codes outside of the inversion script, you will need to edit the file and 
+set the value to "0".
+
+nzero.kernel:
+
+A small file created after running the program 'ray' with itomo=5.  The first entry is the number of 
+non-zero elements of the data kernel and the second entry is the total number of data.
+
+yplot and zplot:
+
+GMT script files to plot the models as vertical (yplot) and horizontal (zplot) slices as color 
+postscript files; the latter plots perturbations with respect to a background model.  You must first 
+run 'difference' and gmtslice (gmtslice_2d for 2D problems) using the response file 'gz.rsp' before 
+running zplot.  You will use 'difference' to calculate the difference between a particular model and 
+the background/starting model (vel0).  For 'yplot' you only need to run gmtslice (gmtslice_2d for 
+2D problems) using the response file 'gy.rsp', but the model to be plotted must be called 
+'vel.mod'.
+
+file.names:
+
+The names of the velocity model files for each value of lambda tested for each non-linear iteration 
+are listed in order in this file.  For example, to test a maximum of 5 lambda values each non-linear 
+iteration, there must be 5 file names, and it makes sense to call them 'vel.1', 'vel.2', etc.  Note that 
+the names 'vel1', 'vel2', ... should not be used since these are the names of the archived velocity 
+model files for the best model for each non-linear iteration.  
+
+Input files
+
+The traveltime data to be inverted are contained in the files fd##.picks (see section on file formats).  
+Many of the programs that are run as part of the inversion script have parameter input files, all use 
+the fortran namelist (as for rayinvr).  One convenient feature of the namelist is that the same 
+parameter can be listed more than once, but the value actually assigned is for the last occurrence in 
+the file.  After a description of the main input parameters for each file, an example file is included 
+corresponding to the 3D example provided.  Some hints for assigning parameter values to perform 
+common tasks are provided for some files.
+
+f.in: input parameters for fd
+
+1) pltpar namelist: plotting and misc parameters (plotting no longer supported)
+
+iwrite	verbose screen output (1)
+iout	output time files (1), when running inversion script (2)
+itimes	output calculated pick files using same receivers for each shot specified in file 
+'rec.in' (1); output calculated pick files using receivers specified in rec.## for shot 
+number ## (-1); output the RMS misfit between the calculated times and the data in 
+the fd##.picks files (2). Must use istop=0 for itimes=1 or -1.
+
+2) propar namelist: propagation parameters
+
+i2d	run in 2D mode (1). This means the x-z plane with y=0.
+istop	stop propagating from a source once the nodes surrounding all receivers have been 
+timed (1).  This means the time files ('fd##.times') may not be completely filled, but 
+may have some zero times around the edges.
+tmax	upper limit of the largest traveltime (s) to be expected for any shot at any point in the 
+model.  This value should be as small as possible since it is used to scale the times 
+stored in the 'fd##.times' in integer*2 format.  The calculated times will be 
+multiplied by 32766/tmax before conversion to integer*2.  Making this value 
+unnecessarily large will cause loss of precision in the times; making this value too 
+small will corrupt the time files.  The program zslice can be used to plot the time files 
+to determine the maximum times and whether corruption has occurred.  
+reverse		the side of the model at which reverse propagations will begin if headwave 
+operators were used in the primary propagation (1 - left or xmin, 2 - right or xmax, 
+3 - back or ymin, 4 - front or ymax, 5 - top or zmin, 6 - bottom or zmax, 7 - let fd 
+decide which side makes most sense)
+nreverse	maximum number of reverse propagations (0 will suppress reverse propagations)
+omin		omit all picks with source-receiver offsets less than omin (km) when calculating the 
+RMS misfit using itimes=2.  omin is an array corresponding to the shots listed in the 
+srcpar namelist parameters.
+
+3) srcpar namelist: source parameters
+
+isource		an array to activate the shots listed in the arrays xsource, ysource, zsource. Use 0 
+or 1 to turn off or on a shot.
+xsource	x locations of the shots (km)
+ysource 	y locations of the shots (km)
+zsource 	z locations of the shots (km)
+inear		use velocities specified in vabove and vbelow to assign velocities at the shots for 
+nodes above and below the shot inside the 5x5x5 node box around the shot within 
+which a straight approximation is made (1).
+vabove		Array containing velocities (km/s) for each shot used when inear=1.
+vbelow 	Array containing velocities (km/s) for each shot used when inear=1.
+
+&pltpar
+       iwrite=0,
+       iout=1, itimes=-1,
+       iout=1, itimes=0,
+       iout=2, itimes=2,
+  &end
+&propar
+       i2d=0, istop=1, tmax=15.,
+       reverse=6, nreverse=1,
+       omin=9*3.0,
+  &end
+  &srcpar
+      inear=1, vabove=9*1.5, vbelow=9*1.6,
+      isource=  9*1,
+      xsource=1.,21.,41.,1.,21.,41.,1.,21.,41.,
+      ysource=1.,1.,1.,12.,12.,12.,23.,23.,23.,
+      zsource=9*1.25,
+  &end
+
+Hints: use the following parameter combinations for the tasks described:
+
+iout=1, itimes=-1	- calculate pick files using receiver geometry in 'rec.##' files (make sure 
+istop=0)
+iout=1, itimes=0	- calculate time files only
+iout=2, itimes=2	- when running inversion script
+
+r.in: input parameters for ray
+
+1) pltpar namelist: plotting and misc parameters
+
+iscreen		verbose screen output (1)
+ircol		color of raypaths
+iscol		color of source
+irec		plot receiver locations (1)
+ireccol		color of receivers
+iray		plot raypaths for all shots in one plot (1) or refresh screen after each shot (2)
+istep		plot one ray at time and wait for user to hit return before plotting next raypath (1)
+itomo		calculate ray hit counts for each cell (1) or data kernel for regularized inversion (5)
+itrms	calculate the RMS misfit between the calculated and picked times
+iwater	calculate a second RMS misfit excluding all picks with raypaths that are above the 
+interface specified in the file 'bathymetry'.  For marine data this eliminates the water 
+wave (direct) arrivals.
+iplot	write the graphics to a postscript file (0), to the screen (1), or both (2)
+xwndow, ywndow	size of graphics window (mm) in x and y directions
+ndecir	decimation factor of raypaths (for plotting only)
+npskip	decimation factor of points defining raypaths (for plotting only)
+symht	dot size (mm) of receiver location or traveltime
+souht	dot or box size (mm) for source location
+ixy	plot raypaths projected into x-y plane (1)
+ixz	plot raypaths projected into x-z plane if ixz=1 and iyz=0
+iyz 	plot raypaths projected into y-z plane if ixz=1 and iyz=1
+i3d	plot a pseudo 3D perspective plot of the raypaths
+theta	projection angle (degrees) used for plot if i3d=1
+
+2) axepar namelist: axes parameters
+
+xmm, ymm, zmm	length of model (mm) in each direction
+tmm			length of time axis (mm) for plotting traveltimes
+ttmin, ttmax			min and max value of time axis (s)
+albht			height of axes labels (mm); no effect on screen, only has effect in postscript
+			file
+
+3) raypar namelist: ray tracing parameters
+
+itrace		array listing the shot numbers to trace rays
+tmax		must be equal to same value of tmax used in 'f.in' file by program fd
+interface	do not include portion of model above the interface specified in file 'bathymetry' 
+when calculating the data kernel matrix using itomo=5 (i.e. model above interface 
+will remain fixed during inversion)
+
+4) ttpar namelist: traveltime plotting parameters
+
+itime		plot observed and calculated traveltimes (1) or traveltime residuals (2); using -1 or -
+2 forces a fresh screen for each shot
+vred	reducing velocity (km/s) if itime=1 or -1.
+itocol	color of observed traveltimes
+itccol	color of calculated traveltimes
+itrcol	color of traveltime residuals
+
+  &pltpar
+          iscreen=0,
+          ircol=2, iscol=-4, irec=0, ireccol=3,
+          iray=2, itomo=0, itrms=0,
+          iray=0, itomo=1, itrms=1,
+          iray=0, itomo=5, itrms=1,
+          iwater=1, istep=0,
+          iplot=1, xwndow=292., ywndow=200.,
+          ndecir=1, npskip=1, symht=1., souht=2.,
+          ixz=1, ixy=1, iyz=1, i3d=0, theta=20.,
+  &end
+  &axepar
+          xmm=220.0, ymm=137.5, zmm=40.0,
+          ttmin=0., ttmax=5.0, ntickt=5,
+          tmm=100., ndecit=1,
+          iaxlab=1, xorig=15., albht=2.5,
+  &end
+  &raypar
+          itrace= 1, 2, 3, 4, 5, 6, 7, 8, 9,
+          tmax=15.,
+          interface=1,
+  &end
+  &ttpar
+          itime=0, vred=4.5, itccol=2, itocol=3, itrcol=2,
+  &end
+
+Hints: use the following parameter combinations for the tasks described:
+
+iray=2, itomo=0, itrms=0	- to plot ray paths (use iray=1 to plot all rays for all shots on 1 
+screen/page)
+iray=0, itomo=1, itrms=1	- to calculate ray hit count for each cell
+iray=0, itomo=5, itrms=1	- when running inversion script
+
+l.in: input parameters for lambda2 and lambda3
+
+lambda0	initial lambda value to try for first non-linear iteration
+redfac		reduce the tradeoff parameter lambda by this factor when testing lambda values 
+inside the second loop of the inversion script.
+
+  &lampar
+     redfac=1.414214
+     lambda0=20.
+  &end
+
+i.in: input parameters for inverse or inverse_2d
+
+alpha		tradeoff parameter that selects relative weighting of fitting smallest perturbation 
+constraint equations versus smoothest/flattest constraint equations.  A value of 1 
+uses only smoothest/flattest regularization; a value of 0 uses only smallest 
+perturbation regularization. Any value between 0 and 1 inclusive is allowed.
+sz	relative importance of maintaining vertical smoothness/flatness versus horizontal 
+smoothness/flatness (a value of 0 eliminates any constraint on vertical 
+smoothness/flatness). Any value greater than or equal to 0 is valid.
+sedge	weight on the smallest perturbation constraints applied to the cells at the edge of the 
+model; this is usually necessary to prevent edge effects caused by smoothing from 
+the interior of the model where there is ray coverage to the edges where there often is 
+none (a value of 0 eliminates any edge constraint)
+smwz	an array to allow variable weight of the smoothness/flatness regularization with 
+depth.  The elements correspond to the cell depth level of the model sampled on the 
+inverse grid from top to bottom, i.e. the dimensions of this array equal the 
+dimension of the model in the z direction on the inverse grid (a value of zero 
+eliminates the constraint at that particular depth).
+spwz 	an array to allow variable weight of the smallest perturbation regularization with 
+depth.  The elements correspond to the cell depth level of the model sampled on the 
+inverse grid from top to bottom, i.e. the dimensions of this array equal the 
+dimension of the model in the z direction on the inverse grid (a value of zero 
+eliminates the constraint at that particular depth)
+florsm	an array to select flatness (1) or smoothness (2) constraints at each depth of the 
+model.  The elements correspond to the cell depth level of the model sampled on the 
+inverse grid from top to bottom, i.e. the dimensions of this array equal the 
+dimension of the model in the z direction on the inverse grid.
+interface	apply the regularization only to cells below the interface specified in the file 
+bathymetry (1)
+kstart	apply the regularization only to cells at least kstart cells below the interface specified 
+in the file bathymetry if interface=1
+
+  &invpar
+          sz=0.2 alpha=0.9 sedge=10.
+
+          smwz=35*1.
+          spwz=35*1.
+
+          florsm=35*2,
+
+          interface=1, kstart=0
+  &end
+
+reset.in: input parameters for reset
+
+filei		input velocity model file
+fileo		output velocity model file
+fileb		background velocity model file
+interface	assign all nodes in output velocity model above interface specified in file 
+'bathymetry' to corresponding values in background model (1)
+ibound	apply velocity bounds to all model nodes, or only those below interface if 
+interface=1.  The min and max bounds are specified in the arrays vmin and vmax for 
+a node with a velocity in the background model specified in the array v0.  As an 
+example, for the reset.in file supplied with the 3D example, a node with a velocity in 
+the background model of 5.5 km/s will be bounded by values of 5.0 and 6.0 km/s.  
+v0		an array containing velocities (km/s) that should cover the range contained in the 
+background model (must be monotonically increasing). Used only if ibound=1
+vmin		minimum velocity bounds (km/s) corresponding to background velocity values 
+specified in the array v0. Used only if ibound=1
+vmax		maximum velocity bounds (km/s) corresponding to background velocity values 
+specified in the array v0. Used only if ibound=1
+
+  &rspar
+     interface=1, ibound=0
+
+     v0=  1.5,2.0,3.0,4.0,5.0,6.0,7.0,8.0,8.3
+     vmin=1.5,1.6,2.4,3.2,4.5,5.5,6.7,7.7,8.0
+     vmax=1.9,2.4,3.6,4.8,5.5,6.5,7.3,8.3,8.5
+
+     filei='vel.new'
+     fileo='vel.new'
+     fileb='vel0'
+  &end
+
+select.in: input parameters for select2 or select3
+
+strfac		the first value of the tradeoff parameter lambda to test at the beginning of each non-
+linear iteration (except the first iteration) is strfct*lbest where lbest is the lambda 
+value used to create the best model from the previous iteration
+
+  &selpar
+     strfac=1.
+  &end
+
+s.in: general input plotting parameters for zslice
+
+1) pltpar namelist: plotting and misc parameters
+
+hfile		name of the header file corresponding to the files to be plotted; 'for.header' or 
+'inv.header' may be used depending on whether the file is parameterized on the 
+forward node-based or inverse cell-based grids.
+ibcol, ifcol	background and foreground plot colors (0 = white, 1 = black)
+iplot	write the graphics to a postscript file (0), to the screen (1), or both (2)
+xwndow, ywndow	size of graphics window (mm) in x and y directions
+icolor		use color for the contours and shading (1)
+icolneg, icolpos	colors of the negative- and positive-valued contours and regions
+igrid		plot the grid as mesh lines
+interface	plot trace of interface on vertical slices (1)
+ifile	name of interface file
+intcol	color of interface
+
+2) axepar namelist: plotting and misc parameters
+
+xmm, ymm, zmm	length of the x, y and z axes (mm)
+albht			height of axes labels (mm); no effect on screen, only has effect in postscript
+			file
+
+  &pltpar
+    hfile='for.header',
+    interface=1, ifile='bathymetry', intcol=2,
+    ibcol=0, ifcol=1, 
+    iplot=1, icolor=1, 
+    xwndow=250., ywndow=155.
+    icolneg=1, icolpos=1,
+    icolneg=1, icolpos=3,
+    igrid=0,
+  &end
+  &axepar
+    xmm=220.0, ymm=137.5, zmm=65.0, albht=2.5, xorig=12.,
+  &end
+
+sfile.in: file specific input parameters for zslice
+
+After a line containing column headings, each line following contains a file name and related 
+information for all available files to be plotted.  
+
+int2		real*4 (0) or integer*2 (1) file type
+cmin, cmax	min and max contour value
+cinc		contour increment
+scalef		scale factor to be applied to values before plotting (note that for 'fd##.times' time 
+files, scalef=tmax/32766 should be used where tmax is the value used in the 'f.in' 
+input file when running the program fd).
+
+  file name   int2 cmin  cmax   cinc  scalef
+'vel.true'      1  1.5    7.0    .1   .001
+'vel0'          1  1.5    7.0    .1   .001
+'bathymetry'    0  1000.  1500.  50.  1.
+'fd01.times'    1  0.     13.    .2   4.578e-4
+'num.cell'      1  0.     1000.  10.0   1.
+'vel.mod'       1  1.5    7.0    .1   .001
+'diff.out'      1 -0.7    0.7    .1   .001
+
+Response files
+
+The response files s0.rsp, zero1.rsp, s.rsp and regrid.rsp are used by programs when running the 
+inversion script and should be left as is.  The response files gz.rsp and gy.rsp are to be used in 
+conjunction with the gmt script files 'zplot' and 'yplot' described in the section on special files.
+
+gz.rsp: response file for gmtslice
+
+diff.out		- file name
+z		- slices parallel to z-axis (use x for x axis or y for y axis)
+2 10.8 .8		- min, max and increment of slice positions (km)
+43 25 29		- number of nodes at which to sample file in x, y and z directions (must 
+divide evenly into length of model in each direction)
+.001		- multiplier to apply to file values
+0		- if equal to 1, omit nodes that have no ray coverage according to 'num.cell' 
+file output by program ray if itomo=1 used in 'r.in' input file; num.cell must 
+be resampled to forward grid using regrid < regrid_num.rsp
+
+gy.rsp: response file for gmtslice
+
+vel.mod		- see description of gz.rsp file above
+y
+1 23 2
+43 25 36
+.001
+0
+
+gy.rsp: response file for gmtslice_2d
+
+diff.out		- file name
+151 25		- number of nodes at which to sample file in x and z directions (must 
+divide evenly into length of model in each direction)
+.001		- multiplier to apply to file values
+0		- if equal to 1, omit nodes that have no ray coverage according to 'num.cell' 
+file output by program ray if itomo=1 used in the 'r.in' input file; num.cell 
+must be resampled to forward grid using regrid_2d < regrid_num.rsp
+
+Example directories
+
+Inside the 2D and 3D example directories everything is setup to run the inversion script (you must 
+compile all the programs first though for either the 2D or 3D problem and edit the path for the 
+executables in the inversion scripts).  The results of running the inversion for several different 
+cases are contained in sub-directories called 'final#' where # ranges from 1 to 2 for the 2D problem 
+and 1 to 8 for the 3D problem.  Postscript plots of the true models in each are contained in the sub-
+directory called 'true'.  As provided, each directory is setup to create the results in the 'final1' sub-
+directory.  The final model plots and hit counts are for the models obtained on the 4th iteration, 
+'vel4'.  For all runs, use 5 non-linear iterations and 5 lambda values for each iteration.
+
+For the 2D example, the true models consists of a high and low velocity anomaly with magnitudes 
+of about 0.2 km/s with respect to a 1D background model.  Synthetic data for 99 shots were 
+calculated and 25 ms of noise was added.  The 'final1' sub-directory contains results obtained by 
+using only 7 of the shots and should take less than 5 minutes real time to run on a Sun SPARC 
+Ultra 5.  The 'final2' sub-directory contains results obtained by using all 99 shots.  The 'final2' 
+directory contains more complete results files, including the hit counts ('num.cell') and model plots 
+without and with unsampled regions omitted (yplot.ps and yplot2.ps respectively).
+
+For the 3D example, the true model consists of a low velocity anomaly between 4 and 8 km depth 
+with a magnitude of 0.5 km/s with respect to a 1D background model.  Synthetic data for 9 shots 
+were calculated and 50 ms of noise was added.  The results in all 8 final sub-directories use all 9 
+shots and only differ in the inversion parameters specified in the 'i.in' file used by the program 
+inverse and contained in each sub-directory.  The 'final1' directory contains results obtained by 
+using a reference set of parameter values to compare the results from the other 7 runs.  The 'final2' 
+directory shows the effect of removing the vertical smoothing. The 'final3' directory shows the 
+effect of removing the smallest perturbation constraint. The 'final4' directory shows the effect of 
+assigning equal weight to the smoothing and perturbation constraints (big mistake for this 
+example!). The 'final5' directory shows the effect of removing the edge constraint (another big 
+mistake). The 'final6' directory shows the effect of using too much weight on the edge constraint. 
+The 'final7' directory shows the effect of using flatness instead of smoothness constraints. The 
+'final8' directory shows the effect of using flatness constraints only between 4 and 8 km depth and 
+with increased weighting relative to the smoothing constraints applied at shallower and deeper 
+depths (this is an attempt to force the anomaly outside of its actual depth range in the true model). 
+There is a great variation between the final models from the 8 cases, illustrating some of the non-
+uniqueness of the dataset.  The 'final1' directory contains more complete results files, including the 
+hit counts ('num.cell') and model plots without and with unsampled regions omitted (yplot.ps, 
+zplot.ps and yplot2.ps, zplot2.ps respectively).
+
+Creating 3D models
+
+To create a 3D model, for use as a starting model or a known model for a synthetic test, the first 
+option is that in which the user does so by knowledge of the velocity model file format already 
+described (binary, integer*2 format in units of m/s).  A second possibility is to use the utility 
+program 'velbuild'.  For this program, there are three options.  First, you can use a rayinvr model 
+sampled on a uniform grid (output file name will be 'fd.out') as input and velbuild will extrapolate 
+this model in the y direction, i.e. a 2D model with no lateral variation in the y direction.  To obtain 
+this model from rayinvr use the following pltpar namelist parameters in the 'r.in' file for example:
+
+ifd=1, dxzmod=1, xmmin=0., xmmax=300.,
+
+Where dxzmod is the uniform node spacing (km) and xmmin and xmmax are the x limits of the 
+model (km) that can be different from xmin and xmax.  The x and z limits of the model and the 
+node spacing must be that same as specified in the 'for.header' file.  The file name must be 
+changed to 'v.in' before running 'velbuild'. The second option is to use two such models from 
+rayinvr and velbuild will position these models at ymin and ymax of the 3D model and linearly 
+interpolate between them.  The input file names in this case must 'v1.in' and 'v2.in'.  The Third 
+option is to use a velocity depth profile specified in a file named 'vel1d.in'.  The 'vel1d.in' files for 
+the 2D and 3D examples are contained in each directory provided.  There are 2 columns: depth 
+(km) and velocity (km/s).  Make sure the maximum depth in 'vel1d.in' is at least zmax or a bit 
+deeper.  The output file from velbuild is called 'vel.mod'.
+
+The programs anomaly, anomaly3, anomaly4, anomaly5 and anomaly6 can be used to 
+superimpose different types of velocity anomalies onto a 'pre-existing vel.mod' model.  The 
+response file to run 'anomaly' for the 2D example is called 'a.rsp' in the directory provided.  
+However, the model was smoothed to create the true model (vel.true).  The response file to run 
+'anomaly3' for the 3D example is called 'a3.rsp' in the directory provided.  This was used to create 
+the true model (vel.true).  
+
+Tips on running an inversion
+
+First, make sure the correct script file is used depending on whether it is a 2D or 3D problem and 
+whether an interface is involved or not (see description of script file 'inversion' in section on 
+special files).  Second, make sure the programs are all compiled with the correct parameter sizes 
+for the problem at hand.  Be careful with the extra parameters that must be specified inside 
+'inverse' and 'inverse_2d' since if the inverse cell model is too finely sampled, the amount of array 
+memory required may become too large to avoid swapping.  In this case, try increasing the cell size 
+of the inverse grid.
+
+The inversion script is setup to iterate towards a model which provides a normalized RMS misfit of 
+one (chi-squared=1).  It will not attempt to overfit the data for any iterations beyond that which 
+initially finds the first model that provides a fit of one, but will effectively "relax" the solution in the 
+sense of finding the largest value of the tradeoff parameter lambda that provides a model with a 
+misfit of one.  This should correspond to the smallest/smooth/flattest model possible (depending 
+on the type of regularization selected).  Therefore the number of non-linear iterations can be set 
+quite large (10 or more) without concern since all models from each iteration are archived 
+automatically along with the log files describing their fit.  
+
+The maximum number of lambda values to test for each non-linear iteration should typically be 
+between 4 and 8.  The lambda value will be decreased for each value tested according to the value 
+of redfac in the input file 'l.in', until the normalized misfit falls below 1, in which case a bisection 
+procedure begins to find the model with a misfit one.
+
+A fairly important parameter is lambda0 in the 'l.in' file.  For a new problem it is hard to predict 
+what a suitable value is since it depends on the amount of data and type of regularization selected.  
+The best approach is to make lambda0 rather large for an initial test run and see how the misfit 
+drops (if at all) in the first iteration.  Large values of lambda0 might be 100-1000 depending on the 
+problem.  Other than wasting time, using a large value of lambda0 should not cause a serious 
+problem.  
+
+For most problems as a starting point, reasonable values to use for the parameters contained in the 
+'i.in' input file used by the programs 'inverse' and 'inverse_2d' that control the type of 
+regularization are probably the values used for the first run in the 3D example provided (results in 
+the 'final1' sub-directory) and given as the example in the section above on input files.  This means 
+an alpha value near or equal to one, non zero values for sz and sedge, equal weighting with depth 
+of the perturbation and smoothness/flatness constraints, and smoothness as opposed to flatness 
+constraints.  One of the main ideas behind varying these parameter values is to allow exploration of 
+model space and thereby gain some idea of what range of models adequately fit the data.
+
+Plotting models with GMT scripts
+
+The GMT script files provided, yplot and zplot, are designed to show color vertical and horizontal 
+slices through the models, respectively; for a 2D problem, only yplot is used and only one slice 
+plotted.  Before running yplot, it necessary to run gmtslice < gy.rsp (gmtslice_2d < gy.rsp for a 
+2D problem).  The model to be plotted must be in a file named 'vel.mod' (otherwise, edit the first 
+line of the gy.rsp response file).  Before running zplot, it is necessary to run the program 
+'difference' to take the difference between the model of interest and the background model (vel0) 
+and thereby create a file called "diff.out'.  Then you must run gmtslice < gz.rsp.  
+
+It is possible to omit regions of the model unsampled by raypaths.  As provided, the response files 
+have a "0" as their last line.  Referring to the description of the response files in the section above, 
+this means the xyz slice files created by the programs 'gmtslice' or 'gmtslice_2d' and used by yplot 
+and zplot will contain all model nodes regardless of whether they were sampled by a raypath.  
+Setting the last line of the response files to "1" means that the 'num.cell' will be used to omit any 
+node from the xyz files that is not sampled by at least one ray.  The trick therefore is how to create 
+the correct num.cell file for a particular model you want to plot?  Follow these steps: (1) copy the 
+model of interest to the file 'vel.mod', (2) run the program 'fd' with the 'iout=1, itimes=0' 
+parameter combination in the 'f.in' file, (3) run 'zero < zero1.rsp', (4) run the program 'ray' with 
+the 'iray=0, itomo=1, itrms=1" parameter combination in the 'r.in' file, (5) run regrid < 
+regrid_num.rsp (for 3D problems) or regrid_2d < regrid_num.rsp (for 2D problems).  This should 
+produce the correct 'num.cell' file needed before running gmtslice or gmtslice_2d.
+
+Plotting models and other files with zslice
+
+The graphics program 'zslice' is intended to allow quick and simple interactive plotting of all of the 
+3D (or 2D) model and data files that are created and used as part of the inversion.  In addition, 
+zslice can be used to determine the exact data value of these files at specific nodes specified 
+interactively with the mouse or by entering the x,y,z coordinates of the point. Also, the minimum 
+and maximum value of each file and each slice through each 3D file is provided.  Therefore, zslice 
+serves as a general purpose 'quality control' program while inversions are running as well as 
+before and afterwards.  Any of the 3D/2D files parameterized on the forward grid can be plotted, 
+either integer*2 or real*4 files, and surfaces (such as the file 'bathymetry') can also be plotted.  
+Only slices oriented normal to the x, y and z axes can be plotted.
+
+To use zslice, you must first list any file to be plotted in the file 'sfile.in' along with some other 
+information described in the section on input files.  Running zslice then prints a menu of the file 
+names and corresponding numbers; a file number must be selected.  The min and max value of the 
+file is provided along with the x,y,z locations of these points.  
+
+Then you are prompted for 3 values (leave spaces/commas between each value):
+
+first:		enter "x", "y" or "z" for a slice normal to one of these axes, e.g. for a 
+horizontal slice enter "z"
+second:	enter position of the slice (km), e.g. for a horizontal slice at 5 km enter "5" 
+third:	enter "1", "2" or "3" for plot type where 1=contour plot, 2=shaded plot, 
+3=combination of contour and shaded plot
+
+The shaded plot is very crude in that a dot is plotted at each node position with a diameter 
+proportional to the data value at that node.  The maximum diameter of the dot is determined by the 
+node spacing, and node values less than or equal to the cmin value listed in the 'sfile.in' file will 
+have a diameter of zero and node values greater than or equal to the cmax value listed in the 
+'sfile.in' file will have maximum diameter, with a linear interpolation of diameters for node values 
+between cmin and cmax.
+
+The min and max value of the slice is provided along with the x,y,z locations of the these points.  
+You are then prompted for another slice.  When you want to stop looking at this file, enter "s 0 0", 
+and the file menu will again be printed and a new file may be selected or you can exit the program 
+by entering "0".  
+
+There are a few special modes that zslice can run in.  If you want to pan through a series of parallel 
+slices from one side of the model to the other, you enter for example "z 9999 1" to look at 
+horizontal slices using plot type 1 (contours).  You are then prompted for the spacing (km) 
+between successive slices.  Then you can pan through each slice by entering a return at the 
+keyboard.  The position and min and max value of each slice are provided.  You can exit from the 
+pan mode before going all the way through the model by entering "s", at which point you will 
+prompted for another slice.  
+
+To extract the value of the data file at specific positions, there are two possibilities.  First, after 
+plotting a particular slice that you want to examine, enter "v 0 0".  Then use the mouse and click 
+inside the slice plot and the x,y,z, position and corresponding data value will be provided for each 
+position clicked.  Too exit this mode, click at a point outside the slice plot.  Alternatively, once in 
+this mode, enter "v" at the keyboard and with the mouse in the graphics window, and you will be 
+prompted to enter x,y,z coordinates, and the value of the data file at that point will be provided.  
+Enter "0 0 0" to exit this mode.
+
+Note that for 3D problems, 2D interface files can be plotted using zslice, for example the file 
+"bathymetry".  In this case, enter "z" for plot direction, "0" for plot position, and whichever plot 
+type.  Although you will get plots using other directions and positions, they will not be meaningful 
+for an interface file.
+
+Where to start
+
+The best way to learn how to use the programs is to run the examples provided.  To jump right to 
+the examples as quickly as possible, follow the steps listed below:
+
+1) Compile all the programs and put the executable in one directory (as provided the array 
+dimensions are setup for the 2D example; edit the '.par' files in the 'fd', 'ray', 'xzslice' and 
+'misc' directories and the 'fd.com' file for the program fd if you want to run the 3D example).  
+Note that paths within the makefiles will also have to be set accordingly.  
+
+2) Edit the path to the executables in the 'inversion' script in each example directory.
+
+3) Run the inversion script.  
+
+4) as the programs run, the log.file will be filled and it can be compared with the log.# files for 
+each iteration in the 'final1' sub-directories for the 2D and 3D examples.  To run the other case 
+for the 2D example, you have to edit the 'f.in' and 'r.in' files, and then compare results with 
+those in the 'final2' sub-directory.  To run the other cases for the 3D example, you have to edit 
+the 'i.in' file, and then compare results with those in the other final sub-directories.  
+
+5) use the programs 'gmtslice', 'gmtslice_2d' and the GMT scripts yplot, zplot to plot the 'vel4' 
+models and compare with the yplot.ps and zplot.ps files in the final sub-directories.  Note that 
+you'll have to run the program 'difference' to take the difference between the models in 'vel4' 
+and 'vel0' before running the program 'gmtslice' using the gz.rsp response file.  
+
+Known problems
+
+If you do not pad the model by at least a few nodes around all shot and receiver points, you may 
+"lose" raypaths by having them hit the side of the model.  This can be caused by velocity 
+heterogeneities that force rays to bend out of plane.  Similarly, if the model is not deep enough, 
+rays may hit the bottom of the model.  In either case, you'll probably want to pad the model more.  
+You can monitor the number of rays that fail to make it back from the receivers to the shots in the 
+log files.
+
+When you compile some of the programs, you may get warning messages.  When some of the 
+programs run, particularly ray, inverse, and regrid, you may get non-fatal error messages such as 
+IEEE floating point exceptions.  I ignore all of these.

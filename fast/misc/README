@@ -1,0 +1,15 @@
+
+All the 3D examples were performed using the old version of the program
+inverse (now called inverse_old.f). To replicate the results of the
+3D example you must use this old version. However, this old version of
+inverse.f was missing the smoothness constraints around the edges of
+the model (that is why the results are so bad when sedge=0, like
+those presented for the 3D example in the directory "final5"). 
+The new program "inverse.f" should be used in all work now (except to
+replicate the results of the examples provided). Also, in general,
+you should be able to reduce or even remove the edge constraints
+(sedge=0) and get the best results.
+
+
+Colin Zelt
+Nov.6/98

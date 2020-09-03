@@ -1,0 +1,20 @@
+c
+c     version 1.0  Nov 1993
+c
+c     parameter statement for ZSLICE
+c
+c     ----------------------------------------------------------------
+c
+c     parameter(nxmax=106, nymax=61, nzmax=36, ncolour=20,
+c    +          nx2dmax=nxmax, ny2dmax=nxmax)
+c
+      parameter(nxmax=601, nymax=1, nzmax=25, ncolour=20,
+     +          nx2dmax=2*nxmax, ny2dmax=2*nxmax)
+c
+c     nxmax - model nodes in x direction
+c
+c     nymax - model nodes in y direction
+c
+c     nzmax - model nodes in z direction
+c
+c     ncolour - colours

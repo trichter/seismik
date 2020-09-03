@@ -1,0 +1,80 @@
+echo " "
+echo "*** EVERYTHING CORRECT: starting model, f.in, r.in, ...?  ***"
+echo " "
+echo "enter number of non-linear iterations:"
+read numi
+echo "enter number of lambda values to test:"
+read numl
+
+EXEDIR=../bin
+
+cp ../useful_tools/cleanfast.csh .
+./cleanfast.csh
+
+touch nowrite
+rm log.file
+
+$EXEDIR/velbuild < v0.rsp
+cp vel.mod vel0
+
+$EXEDIR/init2 
+#$EXEDIR/ireg_2d
+$EXEDIR/smodel < s0.rsp 
+
+numc=`expr $numi`
+
+while [ $numc -gt 0 ]
+do
+
+   it0=`expr $numi - $numc`
+   it1=`expr $numi - $numc + 1`
+
+   num=`expr $numl`
+   $EXEDIR/init3 
+
+   while [ $num -gt 0 ]
+   do
+
+      cp vel$it0 vel.mod
+
+      $EXEDIR/nfd
+      $EXEDIR/zero < zero1.rsp 
+      $EXEDIR/nray
+
+      $EXEDIR/smodel < s.rsp 
+
+      rm *.values
+      grep chi    log.file > chi.values
+      grep lambda log.file > lambda.values
+
+      $EXEDIR/lambda3 
+      $EXEDIR/inverse_2d
+      $EXEDIR/regrid_2d < regrid.rsp 
+      $EXEDIR/update 
+#     $EXEDIR/reset
+
+      $EXEDIR/copy 
+      $EXEDIR/nfd
+
+      rm chi.values
+      grep chi    log.file > chi.values
+
+      $EXEDIR/istop2 
+
+      num=`expr $num - 1`
+   
+   done
+
+   rm *.values
+   grep chi    log.file > chi.values
+   grep lambda log.file > lambda.values
+
+   $EXEDIR/select3 
+
+   mv log.file log.$it1
+   cp vel.mod vel$it1
+
+   numc=`expr $numc - 1`
+
+done
+

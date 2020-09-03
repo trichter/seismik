@@ -1,0 +1,1660 @@
+diff -u -r fd/blkdat.f ../fast_g77/fd/blkdat.f > fast_g77.diff
+diff -u -r fd/fd.com ../fast_g77/fd/fd.com > fast_g77.diff
+--- fd/fd.com	1998-10-30 14:48:56.000000000 -0500
++++ ../fast_g77/fd/fd.com	2004-11-25 15:28:10.000000000 -0500
+@@ -3,6 +3,10 @@
+ c
+ c     common blocks for FD
+ c           
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     ----------------------------------------------------------------
+ c
+       integer icol(8),colour(ncolour),stencil(8),sidelimit(6),
+@@ -30,7 +34,7 @@
+      +          iaxlab,yzxorig,yzyorig,n2,icflag
+       common /blk2/ vel,time,stencil,size,size2,nx,ny,nz,nodestotal,
+      +              sidelimit,nside,i2d,ntup,nstop,sidestop,inter
+-      common /blk3/ xzplot,xyplot,yzplot,n10,n10up,noplot
++      common /blk3/ n10,n10up,noplot,xzplot,xyplot,yzplot
+       common /blk4/ nplot,ncalc,nnegsqrt,ncaus,nstencil,
+      +              nsrccalc,iside,ipltnode,inode,iwrite,ireverse,
+      +              iclear,istencil,io,interface
+diff -u -r fd/fd.doc ../fast_g77/fd/fd.doc > fast_g77.diff
+diff -u -r fd/fd.par ../fast_g77/fd/fd.par > fast_g77.diff
+--- fd/fd.par	1998-10-25 00:30:00.000000000 -0400
++++ ../fast_g77/fd/fd.par	2004-11-29 14:02:49.000000000 -0500
+@@ -5,14 +5,18 @@
+ c
+ c     ----------------------------------------------------------------
+ c
+-c     parameter(nxmax=106, nymax=61, nzmax=36, ncolour=10, 
+-c    +          nsources=9)
+-c     parameter(n2dmax=nxmax*nymax, n1dmax=nxmax)
++c      parameter(nxmax=106, nymax=61, nzmax=36, ncolour=10, 
++c     +          nsources=9)
++c      parameter(n2dmax=nxmax*nymax, n1dmax=nxmax)
+ c
+       parameter(nxmax=601, nymax=1, nzmax=25, ncolour=10, 
+      +          nsources=99)
+       parameter(n2dmax=nxmax*nzmax, n1dmax=nxmax)
+ c
++c      parameter(nxmax=257, nymax=1, nzmax=53, ncolour=10, 
++c     +          nsources=51)
++c      parameter(n2dmax=nxmax*nzmax, n1dmax=nxmax)
++c
+ c     note: n2dmax must be set to the maximum of the number of nodes in
+ c           a 2-D slice of the model (usually the x-y slice)
+ c           and don't forget to change in the fd.com file for 2D problems!
+diff -u -r fd/findiff2d.f ../fast_g77/fd/findiff2d.f > fast_g77.diff
+diff -u -r fd/findiff.f ../fast_g77/fd/findiff.f > fast_g77.diff
+--- fd/findiff.f	1998-08-06 19:05:18.000000000 -0400
++++ ../fast_g77/fd/findiff.f	2004-11-29 10:41:57.000000000 -0500
+@@ -98,7 +98,7 @@
+ c
+            iyp=iy(ipos(i))
+            izp=iz(ipos(i))
+-           if(interface.eq.1.and.izp.gt.inter(ixp-1,iyp)) go to 110
++           if(interfce.eq.1.and.izp.gt.inter(ixp-1,iyp)) go to 110
+            tptmin=time(ixp-1,iyp,izp)
+            torig=tptmin               
+            ipltnode=5
+@@ -133,7 +133,7 @@
+ c
+            iyp=iy(ipos(i))
+            izp=iz(ipos(i))
+-           if(interface.eq.1.and.izp.gt.inter(ixp+1,iyp)) go to 220
++           if(interfce.eq.1.and.izp.gt.inter(ixp+1,iyp)) go to 220
+            tptmin=time(ixp+1,iyp,izp)
+            torig=tptmin               
+            ipltnode=5
+@@ -168,7 +168,7 @@
+ c
+            ixp=ix(ipos(i))
+            izp=iz(ipos(i))
+-           if(interface.eq.1.and.izp.gt.inter(ixp,iyp-1)) go to 330
++           if(interfce.eq.1.and.izp.gt.inter(ixp,iyp-1)) go to 330
+            tptmin=time(ixp,iyp-1,izp)
+            torig=tptmin               
+            ipltnode=5
+@@ -203,7 +203,7 @@
+ c
+            ixp=ix(ipos(i))
+            izp=iz(ipos(i))
+-           if(interface.eq.1.and.izp.gt.inter(ixp,iyp+1)) go to 440
++           if(interfce.eq.1.and.izp.gt.inter(ixp,iyp+1)) go to 440
+            tptmin=time(ixp,iyp+1,izp)
+            torig=tptmin               
+            ipltnode=5
+@@ -238,7 +238,7 @@
+ c
+            ixp=ix(ipos(i))
+            iyp=iy(ipos(i))
+-           if(interface.eq.1.and.izp-1.gt.inter(ixp,iyp)) go to 550
++           if(interfce.eq.1.and.izp-1.gt.inter(ixp,iyp)) go to 550
+            tptmin=time(ixp,iyp,izp-1)
+            torig=tptmin               
+            ipltnode=5
+@@ -273,7 +273,7 @@
+ c
+            ixp=ix(ipos(i))
+            iyp=iy(ipos(i))
+-           if(interface.eq.1.and.izp+1.gt.inter(ixp,iyp)) go to 660
++           if(interfce.eq.1.and.izp+1.gt.inter(ixp,iyp)) go to 660
+            tptmin=time(ixp,iyp,izp+1)
+            torig=tptmin               
+            ipltnode=5
+diff -u -r fd/main.f ../fast_g77/fd/main.f > fast_g77.diff
+--- fd/main.f	1998-10-24 18:42:16.000000000 -0400
++++ ../fast_g77/fd/main.f	2004-11-29 13:53:13.000000000 -0500
+@@ -15,6 +15,9 @@
+ c     |                                                              |
+ c     ----------------------------------------------------------------
+ c
++c	 patched for g77 compilation
++c
++c	 Drew Brenders (brenders@geoladm.geol.queensu.ca)
+ c 
+ c     I/O units:  
+ c                 
+@@ -75,11 +78,11 @@
+ c                 
+       namelist /propar/ i2d,tmax,istop,reverse,nreverse,iorder,
+      +                  ttmin,tthwmin,hwmin,trmin,omin,omax,
+-     +                  interface,ifile
++     +                  interfce,ifile
+ c                 
+       namelist /srcpar/ isource,xsource,ysource,zsource,nptsrc,inear,
+      +                  vabove,vbelow,istype,pick
+-      namelist /spepar/ istype,iout,itimes,reverse,interface
++      namelist /spepar/ istype,iout,itimes,reverse,interfce
+ c
+ c     initialize parameters
+ c
+@@ -100,7 +103,7 @@
+ c
+       pick=1
+       ipar2=0
+-      interface=0
++      interfce=0
+       xtrms=1000.
+       istype=0
+       nccrev=0
+@@ -210,7 +213,7 @@
+ c                 
+       call model
+ c
+-      if(interface.eq.1) then
++      if(interfce.eq.1) then
+         open(52, file=ifile, form='unformatted', status='old')
+         do j=1,ny
+            read(52) (ireal(i),i=1,nx)
+@@ -655,7 +658,7 @@
+      +              stencilt(7)+stencilt(8)
+         if(rhold.ne.0) write(io,705) nccrev
+ 33      format('------------------------------------------------'
+-     +         '----------------------'/
++     +,         '----------------------'/
+      +       'total number of sources:                ',i10/
+      +       'total number of nodes timed:            ',i10/
+      +       'total number of nodes plotted:          ',i10/
+diff -u -r fd/Makefile ../fast_g77/fd/Makefile > fast_g77.diff
+--- fd/Makefile	1998-10-24 22:51:24.000000000 -0400
++++ ../fast_g77/fd/Makefile	2004-11-25 15:15:07.000000000 -0500
+@@ -1,13 +1,18 @@
+ #
+ # makefile for FD
+ #
+-EXEDIR=/net/ray/sunbin/
+-PLTLIB=/net/ray/src/pltlib
++# patched for g77 compilation
++#
++# Drew Brenders (brenders@geoladm.geol.queensu.ca)
++#
++EXEDIR=../bin
++PLTLIB=../pltlib
+ #
+ # compile flags
+ #
+ FFLAGS =  -O4
+-CFLAGS =  -O -I/usr/openwin/include
++#CFLAGS =  -O -I/usr/openwin/include
++CFLAGS =  -O 
+ #
+ #rules for compiling .f files:
+ #
+@@ -23,7 +28,7 @@
+ #
+ # Executable name
+ #
+-NFD_EXEC=$(EXEDIR)nfd
++NFD_EXEC=$(EXEDIR)/nfd
+ #
+ nfd: $(NFD_EXEC)
+ $(NFD_EXEC): ${NFD_OBJS}
+diff -u -r fd/misc.f ../fast_g77/fd/misc.f > fast_g77.diff
+--- fd/misc.f	1998-07-13 17:56:34.000000000 -0400
++++ ../fast_g77/fd/misc.f	2004-11-29 13:53:18.000000000 -0500
+@@ -3,6 +3,10 @@
+ c
+ c     Misc routines for FD                
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     ----------------------------------------------------------------
+ c
+       subroutine fnode(ix,iy,iz,torig,ttrans,ttmin,trmax,tthwmin,
+@@ -48,7 +52,7 @@
+ c
+         if(mod(ncalc,n10).eq.0) then
+           write(io,5) nint(100.*float(ncalc)/float(nodestotal))
+-5         format(i5$)
++5         format(i5)
+         end if
+       end if
+ c
+@@ -231,7 +235,7 @@
+         end if
+         if(iwrite.eq.1) write(io,85) ncrev,face(reverse),iface
+ 85      format(/'reverse propagation',i3,' from: ',a6/
+-     +         'starting face: ',i5$)
++     +,         'starting face: ',i5)
+         hpface(1)=hface(1)
+         hpface(2)=hface(2)
+         hpface(3)=hface(3)
+diff -u -r fd/model.f ../fast_g77/fd/model.f > fast_g77.diff
+diff -u -r fd/plt.f ../fast_g77/fd/plt.f > fast_g77.diff
+diff -u -r fd/stencils2d.f ../fast_g77/fd/stencils2d.f > fast_g77.diff
+diff -u -r fd/stencils.f ../fast_g77/fd/stencils.f > fast_g77.diff
+diff -u -r fd/time.f ../fast_g77/fd/time.f > fast_g77.diff
+diff -u -r misc/1dvel2.f ../fast_g77/misc/1dvel2.f > fast_g77.diff
+--- misc/1dvel2.f	1998-09-11 22:54:35.000000000 -0400
++++ ../fast_g77/misc/1dvel2.f	2004-11-29 13:51:24.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  input 3D model
+@@ -38,15 +42,15 @@
+       integer*2 vel(nxmax,nymax,nzmax),
+      +          numnode(nxmax,nymax,nzmax),vave
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name (default is input)')")
++      write(*, fmt="(/'Enter output file name (default is input)')")
+       read(5,85) fileo
+       if(fileo.eq.'') fileo=filei
+-      write(*,*, fmt="(/'Enter  1  to use num.cell')")
++      write(*, fmt="(/'Enter  1  to use num.cell')")
+       read(5,*) inum
+-      write(*,*, fmt="(/'Enter depth to average below (km)')")
++      write(*, fmt="(/'Enter depth to average below (km)')")
+       read(5,*) z1d
+ c
+       open(10, file=filei, form='unformatted', status='old')
+diff -u -r misc/1dvel.f ../fast_g77/misc/1dvel.f > fast_g77.diff
+--- misc/1dvel.f	1996-08-21 13:17:39.000000000 -0400
++++ ../fast_g77/misc/1dvel.f	2004-11-29 13:49:50.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  input 3D model
+@@ -38,13 +42,13 @@
+       integer*2 vel(nxmax,nymax,nzmax),
+      +          numnode(nxmax,nymax,nzmax),vave
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name (default is input)')")
++      write(*, fmt="(/'Enter output file name (default is input)')")
+       read(5,85) fileo
+       if(fileo.eq.'') fileo=filei
+-      write(*,*, fmt="(/'Enter  1  to use num.cell')")
++      write(*, fmt="(/'Enter  1  to use num.cell')")
+       read(5,*) inum
+ c
+       open(10, file=filei, form='unformatted', status='old')
+diff -u -r misc/2dvel.f ../fast_g77/misc/2dvel.f > fast_g77.diff
+--- misc/2dvel.f	1997-06-30 15:33:07.000000000 -0400
++++ ../fast_g77/misc/2dvel.f	2004-11-29 13:49:35.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  input 3D model
+@@ -38,10 +42,10 @@
+       integer*2 vel(nxmax,nymax,nzmax),velo(nxmax,nymax,nzmax),
+      +          vave
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name (default is input)')")
++      write(*, fmt="(/'Enter output file name (default is input)')")
+       read(5,85) fileo
+       if(fileo.eq.'') fileo=filei
+ c
+diff -u -r misc/add2.f ../fast_g77/misc/add2.f > fast_g77.diff
+--- misc/add2.f	1996-08-31 13:35:54.000000000 -0400
++++ ../fast_g77/misc/add2.f	2004-11-29 13:48:51.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  first 3D data grid
+@@ -37,14 +41,14 @@
+       character*1 r4
+       integer*2 veli1(nxmax),veli2(nxmax),veli(nxmax)
+ c
+-      write(*,*, fmt="(/'Enter file name 1')")
++      write(*, fmt="(/'Enter file name 1')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter file name 2')")
++      write(*, fmt="(/'Enter file name 2')")
+       read(5,85) file2
+-      write(*,*, fmt="(/'Enter file1 and file2 multipliers')")
++      write(*, fmt="(/'Enter file1 and file2 multipliers')")
+       read(5,*) x1,x2
+-      write(*,*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
++      write(*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
+       read(5,95) r4
+ 95    format(a1)
+ c
+diff -u -r misc/add.f ../fast_g77/misc/add.f > fast_g77.diff
+--- misc/add.f	1995-05-01 16:46:31.000000000 -0400
++++ ../fast_g77/misc/add.f	2004-11-29 13:49:18.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  first 3D data grid
+@@ -37,12 +41,12 @@
+       character*1 r4
+       integer*2 veli1(nxmax),veli2(nxmax)
+ c
+-      write(*,*, fmt="(/'Enter file name 1')")
++      write(*, fmt="(/'Enter file name 1')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter file name 2')")
++      write(*, fmt="(/'Enter file name 2')")
+       read(5,85) file2
+-      write(*,*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
++      write(*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
+       read(5,95) r4
+ 95    format(a1)
+ c
+diff -u -r misc/anomaly3.f ../fast_g77/misc/anomaly3.f > fast_g77.diff
+diff -u -r misc/anomaly4.f ../fast_g77/misc/anomaly4.f > fast_g77.diff
+diff -u -r misc/anomaly5.f ../fast_g77/misc/anomaly5.f > fast_g77.diff
+diff -u -r misc/anomaly6.f ../fast_g77/misc/anomaly6.f > fast_g77.diff
+diff -u -r misc/anomaly.f ../fast_g77/misc/anomaly.f > fast_g77.diff
+diff -u -r misc/ave2.f ../fast_g77/misc/ave2.f > fast_g77.diff
+--- misc/ave2.f	1996-10-21 19:25:14.000000000 -0400
++++ ../fast_g77/misc/ave2.f	2004-11-29 13:48:21.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  input 3D data grid
+@@ -33,10 +37,10 @@
+       character*72 file1
+       integer*2 veli1(nxmax,nymax,nzmax),veli2(nxmax,nymax,nzmax)
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter min and max depth (km)')")
++      write(*, fmt="(/'Enter min and max depth (km)')")
+       read(5,*) zamin,zamax
+ c
+       open(10, file=file1, form='unformatted', status='old')
+diff -u -r misc/ave4.f ../fast_g77/misc/ave4.f > fast_g77.diff
+--- misc/ave4.f	1998-10-24 23:06:32.000000000 -0400
++++ ../fast_g77/misc/ave4.f	2004-11-29 13:48:03.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  first 3D data grid
+@@ -35,14 +39,14 @@
+       character*72 file1,file2,file3,file4
+       integer*2 vel(4,nxmax),vela(nxmax)
+ c
+-      write(*,*, fmt="(/'Enter file name 1')")
++      write(*, fmt="(/'Enter file name 1')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter file name 2')")
++      write(*, fmt="(/'Enter file name 2')")
+       read(5,85) file2
+-      write(*,*, fmt="(/'Enter file name 3')")
++      write(*, fmt="(/'Enter file name 3')")
+       read(5,85) file3
+-      write(*,*, fmt="(/'Enter file name 4')")
++      write(*, fmt="(/'Enter file name 4')")
+       read(5,85) file4
+ c
+       open(11, file=file1, form='unformatted', status='old')
+diff -u -r misc/ave.f ../fast_g77/misc/ave.f > fast_g77.diff
+--- misc/ave.f	1995-05-11 08:21:31.000000000 -0400
++++ ../fast_g77/misc/ave.f	2004-11-29 13:47:40.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  first 3D data grid
+@@ -37,12 +41,12 @@
+       character*1 r4
+       integer*2 veli1(nxmax),veli2(nxmax)
+ c
+-      write(*,*, fmt="(/'Enter file name 1')")
++      write(*, fmt="(/'Enter file name 1')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter file name 2')")
++      write(*, fmt="(/'Enter file name 2')")
+       read(5,85) file2
+-      write(*,*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
++      write(*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
+       read(5,95) r4
+ 95    format(a1)
+ c
+diff -u -r misc/bound.f ../fast_g77/misc/bound.f > fast_g77.diff
+diff -u -r misc/copy.f ../fast_g77/misc/copy.f > fast_g77.diff
+diff -u -r misc/difference2.f ../fast_g77/misc/difference2.f > fast_g77.diff
+--- misc/difference2.f	1998-03-13 15:47:44.000000000 -0500
++++ ../fast_g77/misc/difference2.f	2004-11-29 13:47:00.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  first 3D data grid
+@@ -36,9 +40,9 @@
+       integer*2 veli1(nxmax),veli2(nxmax),imaxdiff
+ c
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter file name')")
++      write(*, fmt="(/'Enter file name')")
+       read(5,85) file2
+-      write(*,*, fmt="(/'Enter background file name')")
++      write(*, fmt="(/'Enter background file name')")
+       read(5,85) file1
+ c
+       open(10, file=file1, form='unformatted', status='old')
+diff -u -r misc/difference.f ../fast_g77/misc/difference.f > fast_g77.diff
+--- misc/difference.f	1995-05-01 16:40:22.000000000 -0400
++++ ../fast_g77/misc/difference.f	2004-11-29 13:46:38.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  first 3D data grid
+@@ -37,12 +41,12 @@
+       character*1 r4
+       integer*2 veli1(nxmax),veli2(nxmax),imaxdiff
+ c
+-      write(*,*, fmt="(/'Enter file name 1 (diff = file1 - file2)')")
++      write(*, fmt="(/'Enter file name 1 (diff = file1 - file2)')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter file name 2')")
++      write(*, fmt="(/'Enter file name 2')")
+       read(5,85) file2
+-      write(*,*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
++      write(*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
+       read(5,95) r4
+ 95    format(a1)
+ c
+diff -u -r misc/gmtslice_2d.f ../fast_g77/misc/gmtslice_2d.f > fast_g77.diff
+--- misc/gmtslice_2d.f	1998-10-26 00:10:34.000000000 -0500
++++ ../fast_g77/misc/gmtslice_2d.f	2004-11-29 13:46:00.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  3D data grid
+@@ -46,14 +50,14 @@
+         io=51
+       end if
+ c
+-      write(io,*, fmt="(/'Enter input file name')")
++      write(io, fmt="(/'Enter input file name')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(io,*, fmt="(/'Enter npts in x,z directions')")
++      write(io, fmt="(/'Enter npts in x,z directions')")
+       read(5,*) nxs,nzs
+-      write(io,*, fmt="(/'Enter data multiplier')")
++      write(io, fmt="(/'Enter data multiplier')")
+       read(5,*) xmult
+-      write(io,*, fmt="(/'Enter  1  to mask unsampled cells')")
++      write(io, fmt="(/'Enter  1  to mask unsampled cells')")
+       read(5,*) mask
+ c
+       open(10, file=file1, form='unformatted', status='old')
+diff -u -r misc/gmtslice.f ../fast_g77/misc/gmtslice.f > fast_g77.diff
+--- misc/gmtslice.f	1996-09-01 19:34:17.000000000 -0400
++++ ../fast_g77/misc/gmtslice.f	2004-11-29 13:50:26.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  3D data grid
+@@ -47,21 +51,21 @@
+         io=51
+       end if
+ c
+-      write(io,*, fmt="(/'Enter input file name')")
++      write(io, fmt="(/'Enter input file name')")
+       read(5,85) file1
+ 85    format(a72)
+-985   write(io,*, fmt="(/'Enter slice plane normal direction')")
++985   write(io, fmt="(/'Enter slice plane normal direction')")
+       read(5,86) plane
+ 86    format(a1)
+       if(plane.ne.'x'.and.plane.ne.'y'.and.plane.ne.'z') go to 985
+-      write(io,*, fmt="(/
++      write(io, fmt="(/
+      +  'Enter min and max slice position and interval')")
+       read(5,*) pmin,pmax,pinc
+-      write(io,*, fmt="(/'Enter npts in x,y,z directions')")
++      write(io, fmt="(/'Enter npts in x,y,z directions')")
+       read(5,*) nxs,nys,nzs
+-      write(io,*, fmt="(/'Enter data multiplier')")
++      write(io, fmt="(/'Enter data multiplier')")
+       read(5,*) xmult
+-      write(io,*, fmt="(/'Enter  1  to mask unsampled cells')")
++      write(io, fmt="(/'Enter  1  to mask unsampled cells')")
+       read(5,*) mask
+ c
+       open(10, file=file1, form='unformatted', status='old')
+diff -u -r misc/gmtslicep.f ../fast_g77/misc/gmtslicep.f > fast_g77.diff
+--- misc/gmtslicep.f	1998-10-24 23:32:36.000000000 -0400
++++ ../fast_g77/misc/gmtslicep.f	2004-11-29 13:50:38.000000000 -0500
+@@ -17,6 +17,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  3D data grid
+@@ -48,21 +52,21 @@
+         io=51
+       end if
+ c
+-      write(io,*, fmt="(/'Enter input vel.mod')")
++      write(io, fmt="(/'Enter input vel.mod')")
+       read(5,85) file1
+ 85    format(a72)
+-985   write(io,*, fmt="(/'Enter slice plane *** p required')")
++985   write(io, fmt="(/'Enter slice plane *** p required')")
+       read(5,86) plane
+ 86    format(a1)
+       if(plane.ne.'p') go to 985
+-      write(io,*, fmt="(/
++      write(io, fmt="(/
+      +  'Enter x1,y1 and x2,y2 of start*end profile position')")
+       read(5,*) x1,y1,x2,y2
+-      write(io,*, fmt="(/'Enter npts in p,z directions')")
++      write(io, fmt="(/'Enter npts in p,z directions')")
+       read(5,*) nps,nzs
+-      write(io,*, fmt="(/'Enter data multiplier')")
++      write(io, fmt="(/'Enter data multiplier')")
+       read(5,*) xmult
+-      write(io,*, fmt="(/'Enter  1  to mask unsampled cells')")
++      write(io, fmt="(/'Enter  1  to mask unsampled cells')")
+       read(5,*) mask
+ c
+       open(10, file=file1, form='unformatted', status='old')
+@@ -110,7 +114,7 @@
+ c
+       zinc=(zmax-zmin)/float(nzs-1)
+ 
+-      write(io,*, fmt="(/'GMT Info xinc zinc')")
++      write(io, fmt="(/'GMT Info xinc zinc')")
+       write(io,*) pinc, zinc
+       write(io,*)
+ 
+diff -u -r misc/h2z.f ../fast_g77/misc/h2z.f > fast_g77.diff
+--- misc/h2z.f	1996-02-01 17:13:23.000000000 -0500
++++ ../fast_g77/misc/h2z.f	2004-11-29 13:43:47.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  real*4 file 
+@@ -37,10 +41,10 @@
+       dmax=-1.e10
+       iflag=0
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name')")
++      write(*, fmt="(/'Enter output file name')")
+       read(5,85) fileo
+ c
+       open(unit=11, file=fileo, form='unformatted')
+diff -u -r misc/init2.f ../fast_g77/misc/init2.f > fast_g77.diff
+diff -u -r misc/init3.f ../fast_g77/misc/init3.f > fast_g77.diff
+diff -u -r misc/inverse_2d.f ../fast_g77/misc/inverse_2d.f > fast_g77.diff
+--- misc/inverse_2d.f	1998-10-25 22:40:26.000000000 -0500
++++ ../fast_g77/misc/inverse_2d.f	2004-11-29 15:03:03.000000000 -0500
+@@ -42,7 +42,7 @@
+ c    * it in the subroutines avpu and atupv below!!!!!!!!!!!!! *
+ c    ***********************************************************
+ c
+-      parameter(nnzmax=2500000, ndmax=25000)
++      parameter(nnzmax=25000000, ndmax=250000)
+       parameter(nsconst=3*nximax*nzimax,
+      +          nszero=7*nximax*nzimax,
+      +          nmmax=nximax*nzimax)
+@@ -505,7 +505,7 @@
+ c
+       include 'ray.par'
+ c
+-      parameter(nnzmax=2500000, ndmax=25000)
++      parameter(nnzmax=25000000, ndmax=250000)
+       parameter(nsconst=3*nximax*nzimax,
+      +          nszero=7*nximax*nzimax,
+      +          nmmax=nximax*nzimax)
+@@ -536,7 +536,7 @@
+ c
+       include 'ray.par'
+ c
+-      parameter(nnzmax=2500000, ndmax=25000)
++      parameter(nnzmax=25000000, ndmax=250000)
+       parameter(nsconst=3*nximax*nzimax,
+      +          nszero=7*nximax*nzimax,
+      +          nmmax=nximax*nzimax)
+diff -u -r misc/inverse.f ../fast_g77/misc/inverse.f > fast_g77.diff
+--- misc/inverse.f	1998-11-06 17:08:11.000000000 -0500
++++ ../fast_g77/misc/inverse.f	2004-11-29 12:55:49.000000000 -0500
+@@ -42,7 +42,8 @@
+ c    * it in the subroutines avpu and atupv below!!!!!!!!!!!!! *
+ c    ***********************************************************
+ c
+-      parameter(nnzmax=200000, ndmax=3400)
++c      parameter(nnzmax=2000000, ndmax=3400)
++      parameter(nnzmax=20000000, ndmax=150000)
+       parameter(nsconst=4*nximax*nyimax*nzimax,
+      +          nszero=9*nximax*nyimax*nzimax,
+      +          nmmax=nximax*nyimax*nzimax)
+@@ -630,7 +631,8 @@
+ c
+       include 'ray.par'
+ c
+-      parameter(nnzmax=200000, ndmax=3400)
++c      parameter(nnzmax=200000, ndmax=3400)
++      parameter(nnzmax=20000000, ndmax=150000)
+       parameter(nsconst=4*nximax*nyimax*nzimax,
+      +          nszero=9*nximax*nyimax*nzimax,
+      +          nmmax=nximax*nyimax*nzimax)
+@@ -661,7 +663,8 @@
+ c
+       include 'ray.par'
+ c
+-      parameter(nnzmax=200000, ndmax=3400)
++c      parameter(nnzmax=200000, ndmax=3400)
++      parameter(nnzmax=20000000, ndmax=150000)
+       parameter(nsconst=4*nximax*nyimax*nzimax,
+      +          nszero=9*nximax*nyimax*nzimax,
+      +          nmmax=nximax*nyimax*nzimax)
+diff -u -r misc/inverse_old.f ../fast_g77/misc/inverse_old.f > fast_g77.diff
+diff -u -r misc/ireg_2d.f ../fast_g77/misc/ireg_2d.f > fast_g77.diff
+diff -u -r misc/ireg.f ../fast_g77/misc/ireg.f > fast_g77.diff
+diff -u -r misc/istop2.f ../fast_g77/misc/istop2.f > fast_g77.diff
+diff -u -r misc/istop.f ../fast_g77/misc/istop.f > fast_g77.diff
+diff -u -r misc/lambda2.f ../fast_g77/misc/lambda2.f > fast_g77.diff
+diff -u -r misc/lambda3.f ../fast_g77/misc/lambda3.f > fast_g77.diff
+--- misc/lambda3.f	1998-10-29 18:30:01.000000000 -0500
++++ ../fast_g77/misc/lambda3.f	2004-11-25 17:56:08.000000000 -0500
+@@ -69,6 +69,8 @@
+           read(11,1)
+           read(11,1)
+ 1         format(' ')
++c          read(11,*)
++c          read(11,*)
+ 
+           i=1
+ 100       read(11,5,end=99) pchi(i)
+diff -u -r misc/latave.f ../fast_g77/misc/latave.f > fast_g77.diff
+--- misc/latave.f	1998-03-04 00:06:31.000000000 -0500
++++ ../fast_g77/misc/latave.f	2004-11-29 13:43:16.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  input 3D model
+@@ -37,7 +41,7 @@
+       character*72 filei
+       integer*2 vel(nxmax,nymax,nzmax)
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+ c
+diff -u -r misc/ray.par ../fast_g77/misc/ray.par > fast_g77.diff
+--- misc/ray.par	1998-10-25 00:31:27.000000000 -0400
++++ ../fast_g77/misc/ray.par	2004-11-30 16:00:31.000000000 -0500
+@@ -11,7 +11,10 @@
+ c
+       parameter(nxmax=601, nymax=1, nzmax=25, 
+      +          nximax=300, nyimax=1, nzimax=24,
+-     +          nray=1200, nsources=99, nwrite=1000, ncolour=10)
++     +          nray=1200, nsources=99, nwrite=10000, ncolour=10)
++c      parameter(nxmax=257, nymax=1, nzmax=53, 
++c     +          nximax=256, nyimax=1, nzimax=52,
++c     +          nray=2000, nsources=51, nwrite=10000, ncolour=10)
+ c
+ c     nxmax - model nodes in x direction for forward calculation
+ c
+diff -u -r misc/real2int.f ../fast_g77/misc/real2int.f > fast_g77.diff
+--- misc/real2int.f	1996-08-21 13:17:46.000000000 -0400
++++ ../fast_g77/misc/real2int.f	2004-11-29 13:43:02.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  real*4 file 
+@@ -37,10 +41,10 @@
+       dmax=-1.e10
+       iflag=0
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+-      write(*,*, fmt="(/
++      write(*, fmt="(/
+      +  'Enter output file name (default is input file)')")
+       read(5,85) fileo
+       if(fileo.eq.'') fileo=filei
+diff -u -r misc/rec_ascii.f ../fast_g77/misc/rec_ascii.f > fast_g77.diff
+--- misc/rec_ascii.f	1995-02-20 16:32:58.000000000 -0500
++++ ../fast_g77/misc/rec_ascii.f	2004-11-25 17:05:39.000000000 -0500
+@@ -1,10 +1,14 @@
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+       character*72 ifname,ofname
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) ifname
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name')")
++      write(*, fmt="(/'Enter output file name')")
+       read(5,85) ofname
+ c
+       open(unit=11, file=ifname, form='unformatted', status='old')
+diff -u -r misc/rec_binary.f ../fast_g77/misc/rec_binary.f > fast_g77.diff
+--- misc/rec_binary.f	1995-02-20 16:32:58.000000000 -0500
++++ ../fast_g77/misc/rec_binary.f	2004-11-25 17:06:19.000000000 -0500
+@@ -1,10 +1,14 @@
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+       character*72 ifname,ofname
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) ifname
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name')")
++      write(*, fmt="(/'Enter output file name')")
+       read(5,85) ofname
+ c
+       open(unit=11, file=ifname, status='old')
+diff -u -r misc/rec_deci.f ../fast_g77/misc/rec_deci.f > fast_g77.diff
+--- misc/rec_deci.f	1996-08-19 13:46:52.000000000 -0400
++++ ../fast_g77/misc/rec_deci.f	2004-11-29 13:42:22.000000000 -0500
+@@ -1,3 +1,7 @@
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+       character*72 ifname,ofname
+       num=0
+@@ -8,7 +12,7 @@
+      +'Enter decimation factor')
+       read(5,*) ndeci
+ c
+-1000  write(*,*, fmt="(/'Enter input file name')")
++1000  write(*, fmt="(/'Enter input file name')")
+       read(5,85) ifname
+       if(ifname.eq.'') then
+         write(6,2) num,npick
+@@ -18,7 +22,7 @@
+       end if
+ c
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name (default is input)')")
++      write(*, fmt="(/'Enter output file name (default is input)')")
+       read(5,85) ofname
+       if(ofname.eq.'') ofname=ifname
+ c
+diff -u -r misc/rec_diff.f ../fast_g77/misc/rec_diff.f > fast_g77.diff
+--- misc/rec_diff.f	1995-11-11 18:38:15.000000000 -0500
++++ ../fast_g77/misc/rec_diff.f	2004-11-29 13:41:13.000000000 -0500
+@@ -1,9 +1,13 @@
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+       character*72 if1name,if2name
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) if1name
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) if2name
+ 85    format(a72)
+ c
+diff -u -r misc/rec.f ../fast_g77/misc/rec.f > fast_g77.diff
+diff -u -r misc/rec_noise2.f ../fast_g77/misc/rec_noise2.f > fast_g77.diff
+--- misc/rec_noise2.f	1996-08-13 17:09:18.000000000 -0400
++++ ../fast_g77/misc/rec_noise2.f	2004-11-29 13:40:40.000000000 -0500
+@@ -1,3 +1,7 @@
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+       character*72 ifname,ofname
+       num=0
+@@ -8,7 +12,7 @@
+       read(5,*) iseed
+       rnum=gasdev(-iseed)
+ c
+-1000  write(*,*, fmt="(/'Enter input file name')")
++1000  write(*, fmt="(/'Enter input file name')")
+       read(5,85) ifname
+       if(ifname.eq.'') then
+         write(6,2) num
+@@ -17,7 +21,7 @@
+       end if
+ c
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name (default is input)')")
++      write(*, fmt="(/'Enter output file name (default is input)')")
+       read(5,85) ofname
+       if(ofname.eq.'') ofname=ifname
+ c
+diff -u -r misc/rec_noise.f ../fast_g77/misc/rec_noise.f > fast_g77.diff
+--- misc/rec_noise.f	1995-02-20 16:32:59.000000000 -0500
++++ ../fast_g77/misc/rec_noise.f	2004-11-29 13:40:21.000000000 -0500
+@@ -1,3 +1,7 @@
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+       character*72 ifname,ofname
+ c
+@@ -7,12 +11,12 @@
+       read(5,*) unc,iseed
+       rnum=gasdev(-iseed)
+ c
+-1000  write(*,*, fmt="(/'Enter input file name')")
++1000  write(*, fmt="(/'Enter input file name')")
+       read(5,85) ifname
+       if(ifname.eq.'') stop
+ c
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name (default is input)')")
++      write(*, fmt="(/'Enter output file name (default is input)')")
+       read(5,85) ofname
+       if(ofname.eq.'') ofname=ifname
+ c
+diff -u -r misc/rec_offset.f ../fast_g77/misc/rec_offset.f > fast_g77.diff
+--- misc/rec_offset.f	1998-07-29 17:34:51.000000000 -0400
++++ ../fast_g77/misc/rec_offset.f	2004-11-29 13:39:59.000000000 -0500
+@@ -1,4 +1,8 @@
++c        patched for g77 compilation
+ c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
++
+       character*72 ifname,ofname
+ c
+       write(6,5)
+@@ -6,12 +10,12 @@
+      +'Enter minimum and maximum offset (km)')
+       read(5,*) xmin,xmax
+ c
+-1000  write(*,*, fmt="(/'Enter input file name')")
++1000  write(*, fmt="(/'Enter input file name')")
+       read(5,85) ifname
+       if(ifname.eq.'') stop
+ c
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name (default is input)')")
++      write(*, fmt="(/'Enter output file name (default is input)')")
+       read(5,85) ofname
+       if(ofname.eq.'') ofname=ifname
+ c
+diff -u -r misc/regrid_2d.f ../fast_g77/misc/regrid_2d.f > fast_g77.diff
+--- misc/regrid_2d.f	1998-10-30 10:44:19.000000000 -0500
++++ ../fast_g77/misc/regrid_2d.f	2004-11-25 17:06:44.000000000 -0500
+@@ -15,6 +15,10 @@
+ c     |                                                              |
+ c     ----------------------------------------------------------------
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+ c     I/O units:
+ c
+@@ -52,19 +56,19 @@
+       read(48,*) iistop
+       if(iistop.gt.0) stop
+ c
+-      write(io,*, fmt="(/'Enter input file name')")
++      write(io, fmt="(/'Enter input file name')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(io,*, fmt="(/'Enter output file name')")
++      write(io, fmt="(/'Enter output file name')")
+       read(5,85) file2
+       if(file2.eq.'') file2=file1
+-      write(io,*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
++      write(io, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
+       read(5,95) r4
+ 95    format(a1)
+-      write(io,*, fmt="(/'Enter number of smoothing applications')")
++      write(io, fmt="(/'Enter number of smoothing applications')")
+       read(5,*) nsmooth
+-      write(io,*, fmt="(/
+-     +  'Enter x,y,z smoothing operator half width')")
++      write(io, fmt="(/
++     +,  'Enter x,y,z smoothing operator half width')")
+       read(5,*) nxsmooth,nysmooth,nzsmooth
+ c
+       open(10, file=file1, form='unformatted', status='old')
+diff -u -r misc/regrid.f ../fast_g77/misc/regrid.f > fast_g77.diff
+--- misc/regrid.f	1996-07-26 15:34:07.000000000 -0400
++++ ../fast_g77/misc/regrid.f	2004-11-29 13:39:23.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  inverse 3D data grid
+@@ -52,18 +56,18 @@
+       read(48,*) iistop
+       if(iistop.gt.0) stop
+ c
+-      write(io,*, fmt="(/'Enter input file name')")
++      write(io, fmt="(/'Enter input file name')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(io,*, fmt="(/'Enter output file name')")
++      write(io, fmt="(/'Enter output file name')")
+       read(5,85) file2
+       if(file2.eq.'') file2=file1
+-      write(io,*, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
++      write(io, fmt="(/'Enter  r  for r*4 file (default is i*2)')")
+       read(5,95) r4
+ 95    format(a1)
+-      write(io,*, fmt="(/'Enter number of smoothing applications')")
++      write(io, fmt="(/'Enter number of smoothing applications')")
+       read(5,*) nsmooth
+-      write(io,*, fmt="(/
++      write(io, fmt="(/
+      +  'Enter x,y,z smoothing operator half width')")
+       read(5,*) nxsmooth,nysmooth,nzsmooth
+ c
+diff -u -r misc/resamp.f ../fast_g77/misc/resamp.f > fast_g77.diff
+--- misc/resamp.f	1996-02-05 14:39:36.000000000 -0500
++++ ../fast_g77/misc/resamp.f	2004-11-29 13:37:56.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     ----------------------------------------------------------------
+ c
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     I/O units:
+ c
+ c        10 -- input:  3D integer*2 file 
+@@ -33,10 +37,10 @@
+       integer*2 vel(nxmax,nymax,nzmax),datai(nxmax)
+       character filei*72,fileo*72
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name')")
++      write(*, fmt="(/'Enter output file name')")
+       read(5,85) fileo
+ c
+       open(10, file=filei, form='unformatted', status='old')
+diff -u -r misc/reset.f ../fast_g77/misc/reset.f > fast_g77.diff
+diff -u -r misc/select2.f ../fast_g77/misc/select2.f > fast_g77.diff
+diff -u -r misc/select3.f ../fast_g77/misc/select3.f > fast_g77.diff
+diff -u -r misc/smodel.f ../fast_g77/misc/smodel.f > fast_g77.diff
+--- misc/smodel.f	1996-10-18 19:07:33.000000000 -0400
++++ ../fast_g77/misc/smodel.f	2004-11-25 17:04:38.000000000 -0500
+@@ -16,6 +16,10 @@
+ c     |                                                              |
+ c     ----------------------------------------------------------------
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+ c     I/O units:
+ c
+@@ -52,10 +56,10 @@
+       read(48,*) iistop
+       if(iistop.gt.0) stop
+ c
+-      write(io,*, fmt="(/'Enter input file name')")
++      write(io, fmt="(/'Enter input file name')")
+       read(5,85) file1
+ 85    format(a72)
+-      write(io,*, fmt="(/'Enter output file name')")
++      write(io, fmt="(/'Enter output file name')")
+       read(5,85) file2
+ c
+       open(10, file=file1, form='unformatted', status='old')
+diff -u -r misc/update.f ../fast_g77/misc/update.f > fast_g77.diff
+diff -u -r misc/velbuild.f ../fast_g77/misc/velbuild.f > fast_g77.diff
+diff -u -r misc/velint.f ../fast_g77/misc/velint.f > fast_g77.diff
+diff -u -r misc/vz.f ../fast_g77/misc/vz.f > fast_g77.diff
+--- misc/vz.f	1996-07-26 11:06:32.000000000 -0400
++++ ../fast_g77/misc/vz.f	2004-11-29 13:36:52.000000000 -0500
+@@ -15,6 +15,9 @@
+ c     |                                                              |
+ c     ----------------------------------------------------------------
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
+ c
+ c     I/O units:
+ c
+@@ -33,10 +36,10 @@
+       character*72 filei
+       integer*2 vel(nxmax,nymax,nzmax)
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter (x,y) position (km)')")
++      write(*, fmt="(/'Enter (x,y) position (km)')")
+       read(5,*) xpos,ypos
+ c
+       open(10, file=filei, form='unformatted', 
+diff -u -r misc/xyz2bath.f ../fast_g77/misc/xyz2bath.f > fast_g77.diff
+diff -u -r misc/z2h.f ../fast_g77/misc/z2h.f > fast_g77.diff
+--- misc/z2h.f	1996-08-21 13:18:03.000000000 -0400
++++ ../fast_g77/misc/z2h.f	2004-11-29 13:36:24.000000000 -0500
+@@ -15,6 +15,10 @@
+ c     |                                                              |
+ c     ----------------------------------------------------------------
+ c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c
+ c     I/O units:
+ c
+@@ -34,10 +38,10 @@
+       real data(nxmax)
+       character filei*72,fileo*72
+ c
+-      write(*,*, fmt="(/'Enter input file name')")
++      write(*, fmt="(/'Enter input file name')")
+       read(5,85) filei
+ 85    format(a72)
+-      write(*,*, fmt="(/'Enter output file name')")
++      write(*, fmt="(/'Enter output file name')")
+       read(5,85) fileo
+ c
+       open(unit=10, file=filei, form='unformatted', 
+diff -u -r misc/zero.f ../fast_g77/misc/zero.f > fast_g77.diff
+diff -u -r pltlib/nopltlib.f ../fast_g77/pltlib/nopltlib.f > fast_g77.diff
+diff -u -r pltlib/pltsub.f ../fast_g77/pltlib/pltsub.f > fast_g77.diff
+diff -u -r pltlib/xbuplot.c ../fast_g77/pltlib/xbuplot.c > fast_g77.diff
+diff -u -r pltlib/xpltlib.f ../fast_g77/pltlib/xpltlib.f > fast_g77.diff
+diff -u -r ray/blkdat.f ../fast_g77/ray/blkdat.f > fast_g77.diff
+--- ray/blkdat.f	1996-03-12 22:44:33.000000000 -0500
++++ ../fast_g77/ray/blkdat.f	2004-11-25 14:27:04.000000000 -0500
+@@ -2,6 +2,9 @@
+ c     version 1.0  Nov 1993
+ c
+ c     Block data for RAY
++c
++c     patched for g77 compilation 
++c     Drew Brenders (brenders@geoladm.geol.queensu.ca)
+ c                 
+ c     ----------------------------------------------------------------
+ c                 
+diff -u -r ray/main.f ../fast_g77/ray/main.f > fast_g77.diff
+--- ray/main.f	1998-11-04 20:29:00.000000000 -0500
++++ ../fast_g77/ray/main.f	2004-11-29 13:55:32.000000000 -0500
+@@ -6,7 +6,7 @@
+ c     |            **************  R A Y  *************              |
+ c     |                                                              |
+ c     |       Calculate and plot ray paths given a 3D time grid      |
+-c     |       and calculate slowness and interface perturbations     |
++c     |       and calculate slowness and interfce perturbations     |
+ c     |                                                              |
+ c     |                 Written by Colin A. Zelt                     |
+ c     |                                                              |
+@@ -16,6 +16,9 @@
+ c     |                                                              |
+ c     ----------------------------------------------------------------
+ c
++c	 patched for g77 compilation
++c	
++c	 Drew Brenders (brenders@geoladm.geol.queensu.ca)
+ c 
+ c     I/O units:  
+ c                 
+@@ -37,7 +40,7 @@
+ c
+ c        36 -- input:  3D time grid from the program FD
+ c
+-c        37 -- input:  2D interface above which velocities are fixed
++c        37 -- input:  2D interfce above which velocities are fixed
+ c
+ c        38 -- input/output:  log file
+ c
+@@ -72,7 +75,7 @@
+      +                  xotmin,xotmax,tttmin,tttmax,ndecixo,ndecit,
+      +                  ntickxo,ntickt
+ c
+-      namelist /raypar/ nptsrc,smin,itrace,tmax,omin,omax,interface,
++      namelist /raypar/ nptsrc,smin,itrace,tmax,omin,omax,interfce,
+      +                  nptmax,istype,intfile,pick
+ c
+       namelist /ttpar/ itime,vred,itccol,itocol,itrcol,ttunc
+@@ -116,7 +119,7 @@
+       ttunc=.01
+       ixy=1
+       ixz=1
+-      interface=0
++      interfce=0
+       iscreen=1
+       i2d=0
+       vred=0.
+@@ -305,7 +308,7 @@
+ 2131          read(29) (numray(i,j,k),i=1,inx)
+       end if
+ c
+-      if(interface.eq.1) then
++      if(interfce.eq.1) then
+         open(37, file='bathymetry', form='unformatted',
+      +         status='old')
+         do 1300 j=1,ny
+@@ -449,7 +452,7 @@
+ c
+       write(15,95)
+ 95    format(/'source    xrec     yrec     zrec   i   j   k'
+-     +'      x        y        z   npts prob')
++     +,'      x        y        z   npts prob')
+ c
+       if(istype.eq.1) then
+         open(36, file=t2file, form='unformatted', status='old')
+@@ -1003,7 +1006,7 @@
+ c         source
+ c
+           call straight(ic,jc,kc,xs,ys,zs,ixs,iys,izs,iflag)
+-          if(iflag.eq.1) go to 2400
++          if(iflag.eq.1) goto 2400
+         end if
+ c
+         if(iout.eq.1.or.itomo.gt.0.or.itrms.eq.1.or.abs(itime).gt.0) 
+@@ -1037,11 +1040,11 @@
+ c
+           if(itomo.eq.1.or.itomo.eq.2.or.itomo.ge.5) then
+             if(itomo.eq.1)
+-     +        call backproj(tr,ur,tcalc,interface,iflag)
++     +        call backproj(tr,ur,tcalc,interfce,iflag)
+             if(itomo.eq.2)
+-     +        call dtime(tr,ur,tcalc,interface,iflag)
++     +        call d_time(tr,ur,tcalc,interfce,iflag)
+             if(itomo.eq.5) 
+-     +       call kernel(tr,ur,uave,tcalc,interface,iflag)
++     +       call kernel(tr,ur,uave,tcalc,interfce,iflag)
+             if(itrms.eq.1.and.iflag.eq.0) then
+               num2=num2+1
+               rmssm2=rmssm2+diff2
+@@ -1184,7 +1187,7 @@
+ c
+ 1200  if(istep.eq.1.and.mod(ntrace-1,ndecir).eq.0) then
+         write(0,65) ntrace,xr,yr,zr
+-65      format('ray: ',i8,'   receiver: ',3f9.3,' '$)
++65      format('ray: ',i8,'   receiver: ',3f9.3,' ',$)
+         call empty
+         read(5,15) reply
+ 15      format(a1)
+@@ -1342,7 +1345,7 @@
+           write(io,126) num3,trms3,chi3
+           write(15,126) num3,trms3,chi3
+           if(itomo.ne.2) write(38,126) num3,trms3,chi3
+-126       format('for rays turning beneath the interface:'/
++126       format('for rays turning beneath the interfce:'/
+      +           'RMS traveltime residual for ',i8,' rays: ',f12.5/
+      +         '                   Normalized chi-squared: ',f12.4/)
+         end if
+diff -u -r ray/Makefile ../fast_g77/ray/Makefile > fast_g77.diff
+--- ray/Makefile	1998-10-24 22:47:56.000000000 -0400
++++ ../fast_g77/ray/Makefile	2004-11-25 15:08:27.000000000 -0500
+@@ -1,14 +1,18 @@
+ #
+ # makefile for RAY
+ #
+-EXEDIR=/net/ray/sunbin/
+-PLTLIB=/net/ray/src/pltlib
++# patched for g77 compilation
++#
++# Drew Brenders (brenders@geoladm.geol.queensu.ca)
++#
++EXEDIR=../bin
++PLTLIB=../pltlib
+ #
+ # compile flags
+ #
+ FFLAGS =  -O
+ #CFLAGS =  -O -I/usr/openwin/include
+-CFLAGS =  -O -I/usr/openwin/share/include
++CFLAGS =  -O 
+ #
+ #rules for compiling .f files:
+ #
+@@ -25,12 +29,12 @@
+ #
+ # Executable name
+ #
+-XRAY_EXEC=$(EXEDIR)xray
+-NRAY_EXEC=$(EXEDIR)nray
++XRAY_EXEC=$(EXEDIR)/xray
++NRAY_EXEC=$(EXEDIR)/nray
+ #
+ xray: $(XRAY_EXEC)
+ $(XRAY_EXEC): ${XRAY_OBJS}
+-	f77 -o main ${XRAY_OBJS} -L/usr/openwin/lib -lX11
++	f77 -o main ${XRAY_OBJS} -L/usr/X11R6/lib -lX11
+ 	mv main ${XRAY_EXEC}
+ #
+ nray: $(NRAY_EXEC)
+@@ -56,7 +60,7 @@
+ FORCE:
+  
+ $(PLTLIB)/xbuplot.o: FORCE
+-	cd $(@D);cc -O -I/usr/openwin/share/include -c xbuplot.c
++	cd $(@D);cc -O -I/usr/X11R6/include/X11 -c xbuplot.c
+ FORCE:
+ 
+ $(PLTLIB)/nopltlib.o: FORCE
+diff -u -r ray/model.f ../fast_g77/ray/model.f > fast_g77.diff
+diff -u -r ray/plt.f ../fast_g77/ray/plt.f > fast_g77.diff
+diff -u -r ray/ray.com ../fast_g77/ray/ray.com > fast_g77.diff
+--- ray/ray.com	1998-08-11 20:01:17.000000000 -0400
++++ ../fast_g77/ray/ray.com	2004-11-29 13:55:46.000000000 -0500
+@@ -2,6 +2,10 @@
+ c     version 1.0  Jan 1994
+ c
+ c     common blocks for RAY
++c 
++c      patched for g77 compilation
++c      
++c      Drew Brenders (brenders@geoladm.geol.queensu.ca)
+ c           
+ c     ----------------------------------------------------------------
+ c
+@@ -22,11 +26,15 @@
+      +     xomin,xomax,xotmin,xotmax,xomm,ndecixo,xoscale,ntickxo,
+      +     albht,iplots,xzxorig,xzyorig,xyxorig,xyyorig,xtxorig,
+      +     xtyorig,sep,ncol,colour,iaxlab
+-      common /blk2/ time,size,size2,sizex2,sizex4,nx,ny,nz,boundary,
++c
++      common /blk2/ size,size2,sizex2,sizex4,nx,ny,nz,boundary,
+      +       xmodel,ymodel,zmodel,txsize,txsizex2,sized2,inx,iny,inz,
+-     +       nm,xii,yii,zii,inter
++     +       nm,xii,yii,zii,inter,time
++c
+       common /blk3/ xray,yray,zray,xplot,yplot,zplot
+-      common /blk4/ ncount,lseg,cell,numray,pert1,pert2,imodel,  
+-     +              one,npts,smin,imethod,iunc,nk,nl,nlc,istype
++c
++      common /blk4/ pert2,lseg,pert1,imodel,nlc,istype,
++     +              cell,ncount,npts,smin,numray,imethod,nk,nl,one
++c
+       common /cplot/ iplot,isep,iseg,nseg,xwndow,ywndow,ibcol,ifcol,sf
+ c
+diff -u -r ray/ray.par ../fast_g77/ray/ray.par > fast_g77.diff
+--- ray/ray.par	1998-10-25 00:30:43.000000000 -0400
++++ ../fast_g77/ray/ray.par	2004-11-30 16:00:40.000000000 -0500
+@@ -5,13 +5,17 @@
+ c
+ c     ----------------------------------------------------------------
+ c
+-c     parameter(nxmax=106, nymax=61, nzmax=36, 
+-c    +          nximax=35, nyimax=20, nzimax=35,
+-c    +          nray=500, nsources=9, nwrite=1000, ncolour=10)
++c      parameter(nxmax=106, nymax=61, nzmax=36, 
++c     +          nximax=35, nyimax=20, nzimax=35,
++c     +          nray=500, nsources=9, nwrite=1000, ncolour=10)
+ c
+       parameter(nxmax=601, nymax=1, nzmax=25, 
+      +          nximax=300, nyimax=1, nzimax=24,
+-     +          nray=1200, nsources=99, nwrite=1000, ncolour=10)
++     +          nray=1200, nsources=99, nwrite=10000, ncolour=10)
++c
++c      parameter(nxmax=257, nymax=1, nzmax=53, 
++c     +          nximax=256, nyimax=1, nzimax=52,
++c     +          nray=2000, nsources=51, nwrite=10000, ncolour=10)
+ c
+ c     nxmax - model nodes in x direction for forward calculation
+ c
+diff -u -r ray/time.f ../fast_g77/ray/time.f > fast_g77.diff
+diff -u -r ray/tomo.f ../fast_g77/ray/tomo.f > fast_g77.diff
+--- ray/tomo.f	1998-08-11 20:04:16.000000000 -0400
++++ ../fast_g77/ray/tomo.f	2004-11-29 10:43:18.000000000 -0500
+@@ -3,9 +3,13 @@
+ c
+ c     tomography related routines for RAY
+ c                 
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
++c
+ c     ----------------------------------------------------------------
+ c                 
+-      subroutine backproj(tobs,uobs,tcalc,interface,iflag)
++      subroutine backproj(tobs,uobs,tcalc,interfce,iflag)
+ c                 
+ c     calculate the slowness perturbation for each model cell sampled 
+ c     by the current ray path using back projection
+@@ -58,7 +62,7 @@
+ c
+ c     determine effective length of raypath
+ c
+-      if(interface.eq.0) then
++      if(interfce.eq.0) then
+         do 10 i=1,nipts
+            length=length+lseg(i)
+ 10      continue
+@@ -89,7 +93,7 @@
+         sperturbation=deltat/length
+       else
+         sum=0.
+-        if(interface.eq.0) then
++        if(interfce.eq.0) then
+           do 80 i=1,nipts
+              sum=sum+lseg(i)*imodel(ci(i,1),ci(i,2),ci(i,3))
+ 80        continue
+@@ -108,7 +112,7 @@
+         unc=uobs
+       end if
+ c
+-      if(interface.eq.0) then
++      if(interfce.eq.0) then
+         do 20 i=1,nipts
+            if(imethod.eq.1) sperturbation=
+      +       const*imodel(ci(i,1),ci(i,2),ci(i,3))
+@@ -139,7 +143,7 @@
+ c                 
+ c     ----------------------------------------------------------------
+ c                 
+-      subroutine dtime(tobs,uobs,tcalc,interface,iflag)
++      subroutine d_time(tobs,uobs,tcalc,interfce,iflag)
+ c                 
+ c     calculate the time perturbation associated with a known
+ c     slowness perturbation 
+@@ -192,7 +196,7 @@
+ c
+ c     determine effective length of raypath
+ c
+-      if(interface.eq.0) then
++      if(interfce.eq.0) then
+         do 10 i=1,nipts
+            length=length+lseg(i)
+ 10      continue
+@@ -225,7 +229,7 @@
+       end if
+       sum=0.
+ c
+-      if(interface.eq.0) then
++      if(interfce.eq.0) then
+         do 20 i=1,nipts
+            sum=sum+pert1(ci(i,1),ci(i,2),ci(i,3))*lseg(i)
+ 20      continue
+@@ -244,7 +248,7 @@
+ c                 
+ c     ----------------------------------------------------------------
+ c                 
+-      subroutine kernel(tobs,uobs,uave,tcalc,interface,iflag)
++      subroutine kernel(tobs,uobs,uave,tcalc,interfce,iflag)
+ c                 
+ c     calculate the raypath length in each model cell of inverse
+ c     grid for current ray path
+@@ -261,7 +265,7 @@
+ c
+       do 10 i=1,npts-1
+ c
+-         if(interface.eq.1) then
++         if(interfce.eq.1) then
+            z1=bndinterp(xray(i),yray(i),cell(i,1),cell(i,2),1)
+            if(z1.gt.zray(i)) go to 10
+            z2=bndinterp(xray(i+1),yray(i+1),cell(i,1),cell(i,2),1)
+diff -u -r zslice/blkdat.f ../fast_g77/zslice/blkdat.f > fast_g77.diff
+diff -u -r zslice/main.f ../fast_g77/zslice/main.f > fast_g77.diff
+--- zslice/main.f	1998-10-27 17:49:44.000000000 -0500
++++ ../fast_g77/zslice/main.f	2004-11-29 13:53:52.000000000 -0500
+@@ -15,6 +15,10 @@
+ c     |                                                              |
+ c     ----------------------------------------------------------------
+ c
++c
++c        patched for g77 compilation
++c
++c        Drew Brenders (brenders@geoladm.geol.queensu.ca)
+ c 
+ c     I/O units:  
+ c                 
+@@ -44,7 +48,7 @@
+       real xplot(nx2dmax),yplot(ny2dmax),xpl(2),ypl(2),
+      +     inter(nxmax,nymax),intplot(nx2dmax)
+       character plane*1,xlab*6,ylab*6,hfile*25,dfile*25,kclass*1,ph*1,
+-     +          label*80,ifile*25
++     +          label*80,ifile*25,reply*1
+       integer*2 timei(nxmax),inti(nxmax)
+ c
+       namelist /pltpar/ iplot,iroute,hfile,
+@@ -129,7 +133,7 @@
+ 165   format(' ')
+ 333   read(12,*,end=222) dfile
+       write(6,125) i,dfile
+-125   format('   ',i3,' - ',a25$)
++125   format('   ',i3,' - ',a25)
+       if(mod(i,2).eq.0) write(6,165)
+       i=i+1
+       go to 333
+@@ -186,8 +190,8 @@
+ c
+           do 136 k=1,nz
+              do 137 j=1,ny
+-137             read(36,rec=((k-1)*ny+j),end=1399) 
+-     +            (time(i,j,k),i=1,nx)
++c137             read(36,rec=((k-1)*ny+j),end=1399) 
++137             read(36,end=1399) (time(i,j,k),i=1,nx)
+              nk=nk+1
+ 136       continue
+           if(scalef.ne.1.) then
+@@ -203,8 +207,8 @@
+ c
+           do 139 k=1,nz
+              do 141 j=1,ny
+-                read(36,rec=((k-1)*ny+j),end=1399) 
+-     +            (timei(i),i=1,nx)
++c                read(36,rec=((k-1)*ny+j),end=1399) 
++                read(36,end=1399) (timei(i),i=1,nx)
+                 do 142 i=1,nx
+                    time(i,j,k)=float(timei(i))*scalef
+ 142                if(timei(i).eq.-32768) time(i,j,k)=undef
+@@ -348,7 +352,7 @@
+      +'enter normal direction to slice plane (x,y or z),',
+      +' position (km),'/
+      +'and plot type (1,2,3) (enter position=9999 for scanning'
+-     +' or s,0,0 to stop)')
++     +,' or s,0,0 to stop)')
+       read(iin,*,err=795,end=9999) plane,position,imeth
+       if(imeth.lt.0) then
+         iout=1
+@@ -835,8 +839,9 @@
+       if(iscan.eq.1) then
+         write(6,705) position
+ 705     format('position: ',f10.3,' - enter <CR> for next slice,'
+-     +         ' s to stop scan')
++     +,         ' s to stop scan')
+         read(iin,101) reply
++c        read(*,101) reply
+ 101     format(a1)
+         if(reply.eq.'s') iscan=0
+       end if
+diff -u -r zslice/Makefile ../fast_g77/zslice/Makefile > fast_g77.diff
+--- zslice/Makefile	1998-10-24 22:50:20.000000000 -0400
++++ ../fast_g77/zslice/Makefile	2004-11-25 15:51:05.000000000 -0500
+@@ -1,13 +1,18 @@
+ #
+ # makefile for ZSLICE
+ #
+-EXEDIR=/net/ray/sunbin/
+-PLTLIB=/net/ray/src/pltlib
++# patched for g77 compilation
++#
++# Drew Brenders (brenders@geoladm.geol.queensu.ca)
++#
++EXEDIR=../bin
++PLTLIB=../pltlib
+ #
+ # compile flags
+ #
+ FFLAGS =  -O
+-CFLAGS =  -O -I/usr/openwin/include
++#CFLAGS =  -O -I/usr/openwin/include
++CFLAGS =  -O 
+ #
+ #rules for compiling .f files:
+ #
+@@ -23,11 +28,11 @@
+ #
+ # Executable name
+ #
+-XZSLICE_EXEC=$(EXEDIR)xzslice
++XZSLICE_EXEC=$(EXEDIR)/xzslice
+ #
+ xzslice: $(XZSLICE_EXEC)
+ $(XZSLICE_EXEC): ${XZSLICE_OBJS}
+-	f77 -o main ${XZSLICE_OBJS} -L/usr/openwin/lib -lX11
++	f77 -o main ${XZSLICE_OBJS} -L/usr/X11R6/lib -lX11
+ 	mv main ${XZSLICE_EXEC}
+ #
+ # dependencies
+@@ -49,7 +54,7 @@
+ FORCE:
+ 
+ $(PLTLIB)/xbuplot.o: FORCE
+-	cd $(@D);cc -O -I/usr/openwin/share/include -c xbuplot.c
++	cd $(@D);cc -O -I/usr/X11R6/include/X11 -c xbuplot.c
+ FORCE:
+ 
+ 
+diff -u -r zslice/misc.f ../fast_g77/zslice/misc.f > fast_g77.diff
+diff -u -r zslice/zslice.com ../fast_g77/zslice/zslice.com > fast_g77.diff
+diff -u -r zslice/zslice.par ../fast_g77/zslice/zslice.par > fast_g77.diff

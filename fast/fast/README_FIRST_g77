@@ -1,0 +1,20 @@
+Congratulations!  You have unpacked the FAST g77 patch!  
+
+If they're not there already, copy all of these files and subdirectories into
+the directory containing the un-tarred fast.tar available from Colin Zelt at 
+Rice University :
+        cp -Rf * ../fast/
+
+To apply the patch use the following command :
+	patch -p0 < fast_g77.diff
+
+The script useful_tools/make_diff.csh was used to compare all files in the subdirectories
+of the fast.tar file with my files edited for compilation with g77 due to syntactic differences
+between the Solaris and GNU FORTRAN compilers.  The output is fast_g77.diff.
+
+The binaries can be compiled manualy or with the COMPILE_FAST.csh script :
+	./COMPILE_FAST.csh
+
+Drew Brenders (brenders@geoladm.geol.queensu.ca)
+
+

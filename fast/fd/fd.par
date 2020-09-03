@@ -1,0 +1,33 @@
+c
+c     version 1.1  Apr 1995
+c
+c     parameter statement for FD
+c
+c     ----------------------------------------------------------------
+c
+c     2D
+c
+      parameter(nxmax=10000, nymax=1, nzmax=2000, ncolour=10, 
+     +          nsources=1999)
+      parameter(n2dmax=nxmax*nzmax, n1dmax=nxmax)
+c
+c
+c     3D
+c
+c      parameter(nxmax=2500, nymax=500, nzmax=200, ncolour=10, 
+c     +          nsources=2500)
+c      parameter(n2dmax=nxmax*nymax, n1dmax=nxmax)
+c
+c     note: n2dmax must be set to the maximum of the number of nodes in
+c           a 2-D slice of the model (usually the x-y slice)
+c           and don't forget to change in the fd.com file for 2D problems!
+c
+c     nxmax - model nodes in x direction
+c
+c     nymax - model nodes in y direction
+c
+c     nzmax - model nodes in z direction
+c
+c     ncolour - colours
+c
+c     nsources - shots

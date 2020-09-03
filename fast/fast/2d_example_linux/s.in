@@ -1,0 +1,12 @@
+  &pltpar
+    hfile='for.header',
+    ibcol=0, ifcol=1,
+    iplot=1, icolor=1,
+    xwndow=250., ywndow=155.,
+    icolneg=1, icolpos=1,
+    icolneg=1, icolpos=3,
+    igrid=0,
+  &end
+  &axepar
+    xmm=220.0, ymm=10., zmm=50.0, albht=2.5, xorig=12.,
+  &end

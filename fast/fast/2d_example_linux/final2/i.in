@@ -1,0 +1,8 @@
+    &invpar
+          sz=0.125 alpha=0.99 sedge=10.
+
+          smwz=24*1.
+          spwz=24*1.
+
+          kstart=0
+  &end
