@@ -1,0 +1,7 @@
+  &rspar
+     interface=1, ibound=0
+
+     filei='vel.new'
+     fileo='vel.newnew'
+     fileb='vel.mod'
+  &end

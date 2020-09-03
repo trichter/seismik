@@ -1,0 +1,110 @@
+#!/bin/tcsh
+
+
+set numi=$1
+set numl=$2
+set numn=$4
+
+set EXEDIR = $FAST/bin2d
+
+# anderes Startmodel
+
+#echo -2.00000    4.00000 >! vel1d.in
+#echo  6.0000     6.20000 >> vel1d.in
+#echo 3 | $EXEDIR/velbuild 
+#\cp vel.mod vel0
+#\cp vel0_ori vel0
+
+\cp $3 vel0
+
+touch nowrite log.file
+\rm log.file
+
+$EXEDIR/init2 
+#$EXEDIR/ireg_2d
+$EXEDIR/smodel < s0.rsp 
+
+set numc=`expr $numi`
+\cp vel0 vel_$numn-0-0
+echo vel_$numn-0-0 >! gyv.rsp
+awk '{print $1+1, $3+1}' inv.header >> gyv.rsp
+echo .001 >> gyv.rsp
+echo 0    >> gyv.rsp
+$EXEDIR/gmtslice_2d < gyv.rsp
+\mv y2d.slice vel_$numn-0-0.xyz
+
+
+while ( $numc > 0 )
+
+   set it0=`expr $numi - $numc`
+   set it1=`expr $numi - $numc + 1`
+
+   set num=`expr $numl`
+   $EXEDIR/init3 
+
+   while ( $num > 0 )
+
+      \cp vel$it0 vel.mod
+
+      $EXEDIR/nfd
+      $EXEDIR/zero < zero1.rsp 
+      $EXEDIR/nray
+
+      $EXEDIR/smodel < s.rsp 
+
+      \rm *.values
+      grep chi    log.file > chi.values
+      grep lambda log.file > lambda.values
+
+
+#Without interface
+#      $EXEDIR/lambda3 
+#      $EXEDIR/inverse_2d
+#      $EXEDIR/regrid_2d < regrid.rsp 
+#      $EXEDIR/update
+
+#with interface
+      $EXEDIR/ireg_2d
+      $EXEDIR/lambda2 
+      $EXEDIR/inverse_2d
+      $EXEDIR/regrid_2d < regrid.rsp 
+      $EXEDIR/update
+      $EXEDIR/reset
+
+
+      $EXEDIR/copy 
+      $EXEDIR/nfd
+
+      \rm chi.values
+      grep chi    log.file > chi.values
+
+      $EXEDIR/istop2 
+      
+
+      set num=`expr $num - 1`
+      \cp vel.mod vel_$numn-`echo $numc | awk '{print '$numi'-$1}'`-`echo $num | awk '{print '$numl'-$1}'`
+
+      echo vel_$numn-`echo $numc | awk '{print '$numi'-$1}'`-`echo $num | awk '{print '$numl'-$1}'` >! gyv.rsp
+      awk '{print $1+1, $3+1}' inv.header >> gyv.rsp
+      echo .001 >> gyv.rsp
+      echo 0    >> gyv.rsp
+      $EXEDIR/gmtslice_2d < gyv.rsp
+      \mv y2d.slice vel_$numn-`echo $numc | awk '{print '$numi'-$1}'`-`echo $num | awk '{print '$numl'-$1}'`.xyz
+   end
+
+   \rm *.values
+   grep chi    log.file > chi.values
+   grep lambda log.file > lambda.values
+
+
+#Without interface
+#   $EXEDIR/select3 
+#with interface
+  $EXEDIR/select2 
+
+   \mv log.file log.$it1
+   \cp vel.mod vel$it1
+
+   set numc=`expr $numc - 1`
+
+end

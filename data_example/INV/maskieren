@@ -1,0 +1,54 @@
+#!/bin/tcsh
+
+# Script zum Ausblenden von Bereichen in FAST 2D
+# die nicht von Strahlen ueberdeckt sind
+
+set EXEDIR = $FAST/bin2d
+\rm ray_?.xyz vel_?.xyz
+
+set n=$1
+
+# stop.in auf Null setzen
+echo 0 | awk '{printf"   0\n"}' >! stop.in
+
+# make f.in, "Schalter" setzen in f.in..., damit f.in im Orginal 
+# erhalten bleibt , erstmal f.in in f.in.old umgewandelt
+\cp f.in f.in.old
+sed 's/iout=/xxx /' < f.in.old | awk '{if ($1=="xxx") {printf" iout=1, itimes=0,\n"} else print $0}' >! f.in
+
+# make r.in, "Schalter" setzen in r.in..., siehe oben
+\cp r.in r.in.old
+sed 's/iray=/xxx /' < r.in.old | awk '{if ($1=="xxx") {printf" iray=0, itomo=1, itrms=1,\n"} else print $0}' >! r.in
+
+foreach i ( `seq 0 1 $n` )
+
+ awk '{if ("'$i'"==$1) printf("%10d%10d%10d\n",$2,1,$3)}' i.dat >! inv.header
+
+ \cp vel-$i vel.mod
+ $EXEDIR/nfd
+ $EXEDIR/zero < zero1.rsp
+ $EXEDIR/nray
+ $EXEDIR/regrid_2d < regrid_num.rsp
+
+
+# vel -> XYZ
+ echo vel-$i >! gyv.rsp
+ awk '{print $1+1, $3+1}' inv.header >> gyv.rsp
+ echo .001 >> gyv.rsp
+ echo 0    >> gyv.rsp
+ $EXEDIR/gmtslice_2d < gyv.rsp
+ \mv y2d.slice vel_$i.xyz
+
+# hit counts -> XYZ
+ echo num.cell >! gyr.rsp
+ awk '{print $1+1, $3+1}' inv.header >> gyr.rsp
+ echo 1.0  >> gyr.rsp
+ echo 0    >> gyr.rsp
+ $EXEDIR/gmtslice_2d < gyr.rsp
+ \mv y2d.slice ray_$i.xyz
+
+end
+
+\mv f.in.old f.in 
+\mv r.in.old r.in 
+

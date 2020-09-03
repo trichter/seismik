@@ -1,0 +1,70 @@
+#!/bin/tcsh
+
+\touch qqq
+
+set n=$1
+
+set x0 = `awk '{print $1}' \for.header`
+set x1 = `awk '{print $2}' \for.header`
+set dx = `awk '{print $7}' \for.header`
+
+set y0 = `awk '{print $3}' \for.header`
+set y1 = `awk '{print $4}' \for.header`
+
+set z0 = `awk '{print $5}' \for.header`
+set z1 = `awk '{print $6}' \for.header`
+
+set v0 = `head -1 qqq | awk '{print $2}'`
+set v1 = `tail -1 qqq | awk '{print $2}'`
+
+set nx = `awk '{print $8}' \for.header`
+set ny = `awk '{print $9}' \for.header`
+set nz = `awk '{print $10}' \for.header`
+
+# setze Tiefe
+set z0=-5
+set z1=250
+set r = $x0/$x1/$z0/$z1
+
+
+echo $r
+
+\rm .gmt*
+gmt set MEASURE_UNIT CM
+#gmt set ANOT_FONT_SIZE 10
+gmt set LABEL_FONT_SIZE 12
+gmt set COLOR_NAN  200/200/200
+
+set laenge=15
+set ve=".5:1"
+set hoehe=`echo $x0 $x1 $z0 $z1 $laenge $ve | sed 's/:/ /g' | awk '{print ($5*($4-$3)*$6)/($2-$1)}'`
+set j=X$laenge/-$hoehe
+set zshift=`echo $hoehe | awk '{print $1+1.5}'`
+set laenge2=`echo $laenge | awk '{print $1/2}'`
+
+gmt makecpt -Cseis -T0.5/5.0/0.5 -Z -D -I >! vbigi.cpt
+
+echo $x0 $z0 > poly.dat
+cat topo.dat >> poly.dat
+echo $x1 $z0 >> poly.dat
+echo $x0 $z0 >> poly.dat
+
+set n = `tail -1 i.dat | awk '{print $1}'`
+
+foreach i ( `seq $n -1 0` )
+if( $i == $n )then
+ gmt grdimage x$i.grd -J$j -R$r -Cvbigi.cpt -V -K -X2 -P -Y5 >! x.ps
+ gmt psscale -Cvbigi.cpt -D$laenge2/-2/$laenge2/0.3h -B:"P-velocity [km s@+-1@+]": -O -K  >> x.ps
+else
+ gmt grdimage x$i.grd -J$j -R$r -Cvbigi.cpt  -V -K -O -Y$zshift  >> x.ps
+endif
+cat poly.dat | gmt psxy -JX -R -W0.0000001,255/255/255 -G255/255/255 -O -K -N  >> x.ps
+awk '{if ($6==-1) print $1, $3-1}' geo.dat | gmt psxy -JX -R -Si0.1 -G255/0/0 -O -K -N  >> x.ps
+awk '{if ($6==1) print $1, $3-0.5}' geo.dat | gmt psxy -JX -R -Si0.05 -G0 -O -K -N >> x.ps
+set dt = `egrep RMS log_$i | tail -1 | awk '{printf" %.2f\n", $7/1000}'`
+echo $x0 $x1 $z0 $z1 $dt | awk '{print $1+($2-$1)/('$laenge'*20), $4-($4-$3)/('$hoehe'*20), 10,0,1,"LB RMS= "$5" ms"}' | gmt pstext -JX -R  -Gwhite -K -O >> x.ps
+gmt psbasemap -R -J -O -K -V  -B100f20:"Distance [m]":/20f5:"Depth [m]":WSe >> x.ps
+end
+echo 0 0 | gmt psxy -R -J -Sc0.00000000000000001 -W0.00000001 -G0/0/0 -Sc0.000001 -O >> x.ps
+
+

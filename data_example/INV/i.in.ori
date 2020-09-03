@@ -1,0 +1,10 @@
+    &invpar
+          sz=0.01 alpha=0.99 sedge=1.
+
+          smwz=xxx*1.
+          spwz=xxx*1.
+
+          florsm=xxx*2,
+
+          kstart=0
+  &end

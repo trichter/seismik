@@ -1,0 +1,465 @@
+#!/bin/tcsh
+
+##Path##
+set EXEDIR = $FAST/bin2d
+set DATA = ../PROCESSING
+set SU = data.su
+
+
+##Model boundary##
+# zmax - zmin und xmax - xmin sollte durch 20 teilbar sein
+set elev=680.0
+#set xmin=-20.0
+set xmin=-40.0
+set xmax=640
+#set xmax=300
+set ymin=0
+set ymax=0
+set zmin=-40.0
+set zmax=400
+#set zmax=500
+set dx=0.5
+# Gradientenmodell fuer Startmodell in km/s
+# km/s/m
+set vair=0.33
+set vtop=0.5
+set grad=0.025
+
+# Erstelle for.header datei
+echo $xmin $xmax $ymin $ymax $zmin $zmax $dx | awk '{printf("%10.3f%10.3f%10.3f%10.3f%10.3f%10.3f%10.3f%10d%10d%10d",$1,$2,$3,$4,$5,$6,$7,($2-$1)/$7+1,($4-$3)/$7+1,($6-$5)/$7+1);}'  >! \for.header
+set nx = `awk '{print $8}' \for.header`
+set ny = `awk '{print $9}' \for.header`
+set nz = `awk '{print $10}' \for.header`
+set n = `echo $xmin $xmax $dx | awk '{print int(($2-$1)/$3)+1}'`
+set r = ${xmin}/${xmax}/${zmin}/${zmax}
+
+#goto runinv
+#goto runchk
+#goto FWD
+#goto FWD2
+
+##Delete old files##
+\rm fd????.picks fd????.asc
+\rm geo.dat
+\rm vel*
+\rm picks.dat
+
+# Erstelle picks.dat
+# Umrechnen der Zeit von seconds (mit faktor 10) zu ms
+#cat $DATA/sht.hdr  | awk '{if($4==1 && $9>0)print $1,$3,$6,$9*100}' > picks.dat
+
+# absolute Notloesung fuer verdrehte Ketten (ohne Rollen)
+#cat $DATA/sht.hdr  | awk '{if($4==1 && $9>0)print $1,$2-36,$6,$9*100}' > picks.dat
+
+
+#Taking roll-on into account
+#awk 'FNR==NR{a[$1]=$3;next}{print $1,$2,$3,$4,(($1 in a)?a[$1]:-999)}' ../GEO/shots_fieldbook.dat picks.dat | awk '{print $1,$2+(($5-1)*24),$3,$4}' >! dumdumdum
+
+#Add Geophone position
+#awk 'FNR==NR{a[$1]=$2;next}{print $1,$2,$3,(($2 in a)?a[$2]:-999),$4}' ../GEO/rec_xz.dat dumdumdum >! picks2.dat
+#awk 'FNR==NR{a[$1]=$4;next}{printf("%4d %4d %10.3f %10.3f %10.3f %10.3f\n",$1,$2,$3,$4,$5,'$elev'-(($2 in a)?a[$2]:-999))}' ../GEO/rec_xyz.dat picks2.dat > dum
+# setze Fehler des Picks auf 1+sqrt(off**2)*0.02
+#cat dum | awk '{if($4!="-999.000")print $0}' | awk '{off=$3;print $1,$4,$6,$5,1+sqrt(off**2)*0.005}' > fb_all.dat
+
+
+
+##Prepare Input files##
+# xsource, zsource ... Koordinaten fuer Schuss
+\rm xsource zsource itrace isource
+touch xsource zsource itrace isource
+
+awk '{if ($1!=old) {si=si+1; print si, $1; old=$1}}' fb_all.dat >! tt
+echo "Dateiname, Schussnr"
+awk '{if ($1!=old) {si=si+1; print si, $1; old=$1}}' fb_all.dat
+
+set nos = `wc tt | awk '{print $1}'`
+
+echo number of shots $nos
+
+set ff      = 1
+\rm ffid.dat
+touch ffid.dat
+
+# Erstellen der Pick-Dateien
+echo "Erstelle Pick ascii Datei und konvertiere ins Binary-Format"
+echo "(counter, schussnr, Dateiname, Offset, number of lines = Anzahl Picks)"
+while ( $ff <= $nos )
+ set name = `echo $ff | awk '{printf"%04d\n",$1}'`
+
+ set ffid = `awk '{if ("'$ff'"==$1) print $2}' tt`
+
+ awk '{if ($1=="'$ffid'") {printf"%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",$2,0,'$elev'-$3,0,0,-1}}' ../GEO/sou_xz.dat >! fd$name.asc
+ set xoff=`awk '{if ($1=="'$ffid'") print $2}' ../GEO/sou_xz.dat `
+ set z=`awk '{if ($1=="'$ffid'") print '$elev'-$3}' ../GEO/sou_xz.dat `
+# awk '{if ($1=="'$ffid'") printf"%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",1.0*"'$xoff'"+$3, 0, $5, $4, sqrt($3**2)*0.02+1, 1}' fb_all.dat >> fd$name.asc
+ #awk '{if ($1=="'$ffid'") printf"%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",1.0*"'$xoff'"+$2, 0, $3, $4, $5, 1}' fb_all.dat >> fd$name.asc
+awk '{if ($1=="'$ffid'") printf"%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",$2, 0, $3, $4, $5, 1}' fb_all.dat >> fd$name.asc
+
+ echo $ff $name FFID=$ffid with off=$xoff
+ echo $ffid $xoff $z >> ffid.dat
+ awk '{if ($6==-1) {printf"%6.3f,", $1; if (("'$ff'" % 6)==0) printf"\n              "}}' fd$name.asc >> xsource
+ awk '{if ($6==-1) {printf"%6.3f,", $3; if (("'$ff'" % 6)==0) printf"\n              "}}' fd$name.asc >> zsource
+
+ echo $ff | awk '{printf"%4d,",$1; if (("'$ff'" % 6)==0) printf"\n              "}' >> itrace
+ echo $ff | awk '{printf"%1d,",1; if (($1 % 21)==0) printf"\n              "}' >> isource
+
+
+$EXEDIR/rec_binary <<END
+fd$name.asc
+fd$name.picks
+END
+
+ set ff = `echo $ff | awk '{print $1+1}'`
+end
+
+
+
+# Parameter fuer Inversion
+## prepare *.in##
+\cp r.in r.in.old
+\cp f.in f.in.old
+
+head -17 r.in.ori >! rr.in
+echo 0 | awk '{printf"       itrace="}' >> rr.in
+cat itrace >>  rr.in
+echo 0 | awk '{printf" \n"}' >> rr.in
+tail -n -4  r.in.ori >>  rr.in
+
+head -13 f.in.ori >! ff.in
+echo 0 | awk '{printf"      isource="}' >> ff.in
+cat isource >>  ff.in
+echo 0 | awk '{printf" \n"}' >> ff.in
+echo 0 | awk '{printf"      xsource="}' >> ff.in
+cat xsource >>  ff.in
+echo 0 | awk '{printf" \n"}' >> ff.in
+echo $nos | awk '{printf"      ysource=  %d*0,\n",$1}' >> ff.in
+echo 0 | awk '{printf"      zsource="}' >> ff.in
+cat zsource >>  ff.in
+echo 0 | awk '{printf" \n  &end\n"}' >> ff.in
+
+\mv ff.in f.in
+\mv rr.in r.in
+
+cat fd????.asc >! geo.dat
+
+# n ist Anzahl an Picks (gesamt)
+set n=`wc -l fb_all.dat | awk '{print $1}'`
+echo "Schussnummer | Anzahl an Picks"
+cat fb_all.dat | awk 'BEGIN{count=0;souold=$1}{sounew=$1;if(sounew!=souold){print souold,count;count=0}if(NR=='$n')print souold,count+1;count++;souold=$1}' | tail -n +2
+
+##Number of inversion cells !!!##
+set xi0=`echo $xmax $xmin | awk '{print ($1-$2)/20}'`
+set xi1=`echo $xmax $xmin | awk '{print ($1-$2)/10}'`
+set xi2=`echo $xmax $xmin | awk '{print ($1-$2)/5}'`
+set xi3=`echo $xmax $xmin | awk '{print ($1-$2)/2}'`
+set xi4=`echo $xmax $xmin | awk '{print ($1-$2)/1}'`
+
+set zi0=`echo $zmax $zmin | awk '{print ($1-$2)/10}'`
+set zi1=`echo $zmax $zmin | awk '{print ($1-$2)/5}'`
+set zi2=`echo $zmax $zmin | awk '{print ($1-$2)/2}'`
+set zi3=`echo $zmax $zmin | awk '{print ($1-$2)/1}'`
+set zi4=`echo $zmax $zmin | awk '{print ($1-$2)/0.5}'`
+
+cat << EOF > i.dat
+0  $xi0  $zi0
+1  $xi1  $zi1
+2  $xi2  $zi2
+3  $xi3  $zi3
+EOF
+
+
+runchk:
+##Bathymetry for FAST##
+cat ../GEO/sou_xz.dat | awk '{if($2<='$xmax' && $2>='$xmin')print $0}'| awk '{if(NR==1 && $2>'$xmin'){print '$xmin','$elev'-$3};print $2,'$elev'-$3;x=$2}END{if(x<'$xmax'){print '$xmax','$elev'-$3};}' | gmt sample1d -I$dx -Fl | awk '{print $1,$2-2*'$dx'}'  > topo.dat
+cat topo.dat | awk '{print $1,0,$2}' >! topo2.dat
+echo topo2.dat >! bathy.rsp
+$EXEDIR/xyz2bath < bathy.rsp
+\cp int.out bathymetry
+\cp int.out interface
+
+##Create initial model##
+echo "Erstelle Startmodell"
+#cat topo2.dat | awk '{print $1, $3}' | awk '{if(NR==1 && $1!='$xmin')print '$xmin',$2; print $0}END{if($1!='$xmax')print '$xmax',$2}' | gmt sample1d -Fl -I$dx | awk '{for(i=1;i<='$nz';i++){z=(i-1)*'$dx'+'$zmin';if(z<$2){printf("%10.3f %10.3f %7.3f\n",$1,z,'$vair')}else{printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad'+'$vtop')}}}' > startmod.xyz
+
+#cat topo2.dat | awk '{if((NR+33)%100==0)print $1,$3}' | awk '{if(NR==1 && $1!='$xmin')print '$xmin',$2; print $0}END{if($1!='$xmax')print '$xmax',$2}' | gmt sample1d -Fl -I$dx | awk '{for(i=1;i<='$nz';i++){z=(i-1)*'$dx'+'$zmin';if(z<$2){printf("%10.3f %10.3f %7.3f\n",$1,z,'$vair')}else{printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad'+'$vtop')}}}' > startmod.xyz
+
+cat topo2.dat | awk '{if((NR+33)%100==0)print $1, $3}' | awk '{if(NR==1 && $1!='$xmin')print '$xmin',$2; print $0}END{if($1!='$xmax')print '$xmax',$2}' | gmt sample1d -Fl -I$dx   | awk '{for(i=1;i<='$nz';i++){z=(i-1)*'$dx'+'$zmin';if(z<$2){printf("%10.3f %10.3f %7.3f\n",$1,z,'$vair')}else{if($1<80){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad1'+'$vtop')}else{if($1<160){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad2'+'$vtop')}else{if($1<240){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad3'+'$vtop')}else{if($1<500){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad4'+'$vtop')}}}}}}}' > startmod.xyz
+
+
+cat startmod.xyz | gmt xyz2grd -R$r -I$dx -Gstartmod.grd
+
+# Farbskala machen
+echo "Startmodell plotten"
+gmt makecpt -Cseis -T0.5/5.0/0.1 -D -Z -I > vel.cpt
+gmt grdimage startmod.grd -Cvel.cpt -R$r -JX20/-5 -Ba200f50:"Profilmeter [m]":/a20f5:"Tiefe [m]":WSen -X3 -Y10 -K > startmod.ps
+cat topo2.dat | awk '{print $1, $3}' | gmt psxy -R -J -O -K -W0.5p,white >> startmod.ps
+gmt psscale -Cvel.cpt -D10/-2/10/0.3h -Ba0.5:"P-Geschw. [km/s]": -O -V >> startmod.ps
+xdg-open startmod.ps &
+
+
+##Start inversion##
+runinv:
+echo "start inversion"
+set n=`wc -l i.dat | awk '{print $1-1}'`
+# Anzahl der Iterationen innerhalb einer Blockgroesse
+# Anzahl der Iterartionen bevor die Strahlenwege neu bestimmt werden
+set n_of_nl_it = 5
+# Anzahl der Strahlweginversionen
+set n_lambda   = 5
+
+
+foreach n ( `seq 0 1 $n` )
+\rm log.?
+
+  echo \&lampar >! l.in
+  echo redfac=1.4142135 >> l.in
+  echo $n | awk '{f=500; for (i=0; i<=(4-$1); i++) {f=f*1.15} printf"lambda0=%d\n",f}' >> l.in
+  #echo $n | awk '{f=100; for (i=0; i<=(3-$1); i++) {f=f*1.8} printf"lambda0=%d\n",f}' >> l.in
+  echo \&end >> l.in
+
+
+  awk '{if ("'$n'"==$1) printf"%10d%10d%10d\n",$2,1,$3}' i.dat >! inv.header
+
+   set x = `awk '{print $3}' inv.header`
+   sed 's/xxx/'$x'/' i.in.ori >! i.in
+
+
+  if ( $n == 0 ) then
+    echo =========== get starting model
+
+
+    ####Variante 1: 1D Startmodell mit EINEN Gradienten
+    #### echo z1 v1 >! vel1d.in
+    #### echo z2 v2 >> vel1d.in
+
+
+#    echo  -1.0 0.1  >! vel1d.in
+#    echo   5.0 2  >> vel1d.in
+#    echo   99.0 8  >> vel1d.in
+#    echo 3 | $EXEDIR/velbuild
+#    \cp vel.mod start.mod
+
+
+    ####Variante 2: Ein fertiges xyz-File wird als Startmodell verwendet
+    awk '{print $2, $1, $3}' startmod.xyz | awk '{printf"%f %f %f\n", $1/1000, ($2-"'$xmin'")/1000, $3}' | sort -n | awk '{print $1*1000, $2*1000+"'$xmin'", $3}' >! a2
+
+    echo $xmin $xmax $zmin $zmax 1 $nx $nz | awk '{printf"%10.3f%10.3f%10.3f%10.3f%10.3f%10d%10d\n",$1,$2,$3,$4,$5,$6,$7}' >! v.in
+    awk '{printf"%10.3f",$3; if ((NR%"'$nx'")==0) {printf"\n"; c=0}  else {c=c+1; if ((c%10)==0) printf"\n"} }'  a2 >> v.in
+
+   echo 1 | $EXEDIR/velbuild
+   \cp vel.mod start.mod
+
+  else
+
+    echo =========== use model from iteration `echo $n | awk '{print $1-1}'`
+
+   set nn = `echo $n | awk '{print $1-1}'`
+   \cp vel-$nn start.mod
+  endif
+
+   ./inv $n_of_nl_it $n_lambda start.mod $n
+
+   \cp vel$n_of_nl_it vel-$n
+   cat log.? >! log_$n
+end
+
+cat log_? >! loga
+
+# Konvertiere Fast output in GMT input
+echo "Inversion beendete, bereite Plot vor"
+./maskieren $n
+./prepgitter $n
+# Plotten
+echo "Plotten des Models"
+./dvn $n
+
+exit
+
+FWD:
+cd FWD
+\rm rec.????
+\rm fd????.picks
+\rm fd????.calc
+\rm fd????.asc
+\cp ../\for.header .
+\cp ../fd????.picks .
+#\cp ../fd????.asc .
+cat ../f.in | sed 's/iout=2, itimes=2/iout=1, itimes=-1/g' |  sed 's/istop=1/istop=0/g' >! f.in
+echo 0 | awk '{printf("%2d",$1)}' >! stop.in
+echo 1 | awk '{printf("%2d",$1)}' >! time.out
+echo 0 | awk '{printf("%5.1f",$1)}' >! lambda
+
+
+#cat ../../GEO/rec_xz.dat | awk 'BEGIN{old=0}{if($1>old){print $2,$3;old=$1}}' | gmt sample1d -Fl -I1 | awk '{printf("%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",$1,0,'$elev'-$2,0,0,1);}' >! tmp
+cat ../../GEO/rec_xz.dat | awk 'BEGIN{old=0}{if($1>old){print $2,$3;old=$1}}' | awk '{printf("%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",$1,0,'$elev'-$2,0,0,1);}' >! tmp
+
+
+##Convert the pick files to ascii, replace the receiver positions and convert them back to binary
+foreach name ( fd????.picks )
+set x = `echo $name | sed 's/.picks//g'`
+set x2 = `echo $name | sed 's/.picks//g' | sed 's/fd//g'`
+$EXEDIR/rec_ascii <<END
+$x.picks
+$x.asc
+END
+head -1 $x.asc >! tmpp
+cat tmp >> tmpp
+\mv tmpp $x.asc
+\rm $x.picks
+$EXEDIR/rec_binary <<END
+$x.asc
+rec.$x2
+END
+end
+
+
+##Resample model
+set imax=`tail -1 ../i.dat | awk '{print $1}'`
+gmt grdsample ../V$imax.grd -R$r -I$dx -Gv.grd
+gmt grd2xyz v.grd | awk '{if($3<0.1){print $1,$2,0.1}else{print $0}}'  | awk '{print $2, $1, $3}' | awk '{printf"%f %f %f\n", $1/1000, ($2-"'$xmin'")/1000, $3}' | sort -n | awk '{print $1*1000, $2*1000+"'$xmin'", $3}' >! a2
+
+echo $xmin $xmax $zmin $zmax 1 $nx $nz | awk '{printf"%10.3f%10.3f%10.3f%10.3f%10.3f%10d%10d\n",$1,$2,$3,$4,$5,$6,$7}' >! v.in
+awk '{printf"%10.3f",$3; if ((NR%"'$nx'")==0) {printf"\n"; c=0}  else {c=c+1; if ((c%10)==0) printf"\n"} }'  a2 >> v.in
+
+echo 1 | $EXEDIR/velbuild
+#\cp ../vel-$imax vel.mod
+
+##Forward modelling##
+$EXEDIR/nfd
+
+##Rename the pick files and convert them to ascii##
+foreach name ( fd????.calc )
+ set x = `echo $name | sed 's/.calc//g'`
+ echo "mv  $name $x.picks"
+ \mv  $name $x.picks
+
+$EXEDIR/rec_ascii <<END
+$x.picks
+$x.synth.asc
+END
+end
+cd ..
+exit
+
+FWD2:
+cd FWD2
+\rm rec.????
+\rm fd????.picks
+\rm fd????.calc
+\rm fd????.asc
+\cp ../\for.header .
+\cp ../fb_all.dat ./
+#\cp ../shot.dat .
+#\cp ../receiver.dat .
+
+#Create Pickfile (fb_all.dat)
+#tail -n +2 receiver.dat | awk '{off=$3/1000;print $1,off,-$2/1000,0,0}'  > fb_all.dat
+#tail -n +2 shot.dat | awk '{print $1,$3/1000,-$2/1000}' > sou_xz.dat
+
+
+##Create Pickfile (fb_all.dat)
+#cat ../$DATA/sht_cor2.hdr  | awk '{if($4==1)print $9}'| sed 's/-999\.000/0/g' > picks.dat
+#sugethw key=ep,offset,gelev < ../$DATA/$SU | sed '/^$/d;s/=/ /g' | awk '{printf(" %d %.3f %.3f\n", $2,$4/10,'$elev'-$6/1000.)}' > dum
+#paste dum picks.dat | awk '{off=$2;print $1,off,$3,$4*10,(1.5+sqrt(off**2)*0.01)}' > fb_all.dat
+
+#cat ../$DATA/sht.hdr  | awk '{if($4==1)print $1,$3,$6,$9}' | sed 's/-999\.000/0/g' > picks.dat
+##Add elevation##
+#awk 'FNR==NR{a[$1]=$4;next}{printf("%4d %4d %10.3f %10.3f %10.3f\n",$1,$2,$3,$4,'$elev'-(a[$1]?a[$2]:-999))}' ../../GEO/rec_xyz.dat picks.dat > dum
+#cat dum | awk '{off=$3;print $1,off,$5,$4*10,1.0+sqrt(off**2)*0.01}' > fb_all.dat
+
+cat ../../GEO/sou_xz.dat | awk '{print $1,$2,'$elev'-$3}' > sou_xz.dat
+
+
+#Prepare Input files
+\rm xsource zsource itrace isource
+touch xsource zsource itrace isource
+
+ awk '{if ($1!=old || NR==1) {si=si+1; print si, $1; old=$1}}' fb_all.dat >! tt
+ awk '{if ($1!=old || NR==1) {si=si+1; print si, $1; old=$1}}' fb_all.dat
+
+\rm fd????.asc fd????.picks
+
+ set nos = `wc tt | awk '{print $1}'`
+
+
+echo number of shots $nos
+set ff      = 1
+ \rm ffid.dat
+touch ffid.dat
+while ( $ff <= $nos )
+ set name = `echo $ff | awk '{if ($1>999) {printf"%4d\n",$1} else {if ($1>99) {printf"0%3d\n",$1} else {if ($1>9) {printf"00%2d\n",$1} else {printf"000%1d\n",$1}}}}'`
+
+ set ffid = `awk '{if ("'$ff'"==$1) print $2}' tt`
+
+ awk '{if ($1=="'$ffid'") {printf"%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",$2,0,$3,0,0,-1}}' sou_xz.dat >! fd$name.asc
+ set xoff=`awk '{if ($1=="'$ffid'") print $2}' sou_xz.dat`
+ set z=`awk '{if ($1=="'$ffid'") print $3}' sou_xz.dat`
+# awk '{if ($1=="'$ffid'") printf"%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",1.0*"'$xoff'"+$2, 0, $3, $4, $5, 1}' fb_all.dat >> fd$name.asc
+ awk '{if ($1=="'$ffid'") printf"%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n",$2, 0, $3, $4, $5, 1}' fb_all.dat >> fd$name.asc
+
+
+ echo $ff $name FFID=$ffid with off=$xoff
+ echo $ffid $xoff $z >> ffid.dat
+ awk '{if ($6==-1) {printf"%6.3f,", $1; if (("'$ff'" % 6)==0) printf"\n              "}}' fd$name.asc >> xsource
+ awk '{if ($6==-1) {printf"%6.3f,",$3; if (("'$ff'" % 6)==0) printf"\n              "}}' fd$name.asc >> zsource
+
+ echo $ff | awk '{printf"%4d,",$1; if (("'$ff'" % 6)==0) printf"\n              "}' >> itrace
+ echo $ff | awk '{printf"%1d,",1; if (($1 % 21)==0) printf"\n              "}' >> isource
+
+$EXEDIR/rec_binary <<END
+fd$name.asc
+rec.$name
+END
+
+ set ff = `echo $ff | awk '{print $1+1}'`
+end
+
+
+# prepare *.in
+
+\cp ../f.in .
+
+head -13 f.in >! ff.in
+echo 0 | awk '{printf"      isource="}' >> ff.in
+cat isource >>  ff.in
+echo 0 | awk '{printf" \n"}' >> ff.in
+echo 0 | awk '{printf"      xsource="}' >> ff.in
+cat xsource >>  ff.in
+echo 0 | awk '{printf" \n"}' >> ff.in
+echo $nos | awk '{printf"      ysource=  %d*0,\n",$1}' >> ff.in
+echo 0 | awk '{printf"      zsource="}' >> ff.in
+cat zsource >>  ff.in
+echo 0 | awk '{printf" \n  &end\n"}' >> ff.in
+
+
+cat ff.in | sed 's/iout=2, itimes=2/iout=1, itimes=-1/g' |  sed 's/istop=1/istop=0/g' >! f.in
+echo 0 | awk '{printf("%2d",$1)}' >! stop.in
+echo 1 | awk '{printf("%2d",$1)}' >! time.out
+echo 0 | awk '{printf("%5.1f",$1)}' >! lambda
+
+#Resample model
+set imax=`tail -1 ../i.dat | awk '{print $1}'`
+#grdsample ../V$imax.grd -R$r -I$dx -Gv.grd
+#grd2xyz v.grd | awk '{if($3<0.1){print $1,$2,0.1}else{print $0}}'  | awk '{print $2, $1, $3}' | awk '{printf"%f %f %f\n", $1/1000, ($2-"'$xmin'")/1000, $3}' | sort -n | awk '{print $1*1000, $2*1000+"'$xmin'", $3}' >! a2
+
+# echo $xmin $xmax $zmin $zmax 1 $nx $nz | awk '{printf"%10.3f%10.3f%10.3f%10.3f%10.3f%10d%10d\n",$1,$2,$3,$4,$5,$6,$7}' >! v.in
+# awk '{printf"%10.3f",$3; if ((NR%"'$nx'")==0) {printf"\n"; c=0}  else {c=c+1; if ((c%10)==0) printf"\n"} }' a2 >> v.in
+
+# echo 1 | $EXEDIR/velbuild
+\cp ../vel-$imax vel.mod
+
+#Forward modelling
+$EXEDIR/nfd
+
+#Rename the pick files and convert them to ascii
+foreach name ( fd????.calc )
+ set x = `echo $name | sed 's/.calc//g'`
+ echo "mv  $name $x.picks"
+ \mv  $name $x.picks
+
+$EXEDIR/rec_ascii <<END
+$x.picks
+$x.synth.asc
+END
+end
+cd ..

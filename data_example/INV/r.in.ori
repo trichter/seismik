@@ -1,0 +1,28 @@
+  &pltpar    
+          iscreen=0,
+          ircol=2, iscol=-4, irec=1, ireccol=3,
+          iray=2, itomo=0, itrms=0,
+          iray=0, itomo=5, itrms=1,
+          iray=0, itomo=1, itrms=1,
+          iray=0, itomo=5, itrms=1,
+          iwater=0, istep=0,
+          iplot=1, xwndow=292., ywndow=200., 
+          ndecir=1, npskip=1, symht=1., souht=2.,
+          ixz=1, ixy=0,
+  &end
+  &axepar 
+          xmm=220.0, ymm=10.0, zmm=50.0,
+          iaxlab=1, xorig=15., albht=2.5, 
+  &end   
+  &raypar
+       itrace=   1,   2,   3,   4,   5,   6,
+                 7,   8,   9,  10,  11,  12,
+                13,  14,  15,  16,  17,  18,
+                19,  20,  21,  22,  23,  24,
+                25,  26,  27,  28,  29,  30,
+                31,  32,  33,  34,  35,  36,
+               
+          tmax=120., 
+  &end
+  &ttpar
+  &end

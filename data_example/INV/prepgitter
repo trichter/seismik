@@ -1,0 +1,63 @@
+#!/bin/tcsh
+
+\rm .gmt*
+
+\rm V?.grd R?.grd x?.grd
+
+set nn=$1
+
+# manuel gesetzte Sprungweite in x- und z-Richtung und auch range manuel
+# eingestellt
+
+foreach n ( `seq 0 1 $nn` )
+
+ awk '{if ("'$n'"==$1) printf"%10d%10d%10d\n",$2,1,$3}' i.dat >! inv.header
+
+
+ set xmin = `awk '{print $1}' for.header`
+ set xmax = `awk '{print $2}' for.header`
+ set zmin = `awk '{print $5}' for.header`
+ set zmax = `awk '{print $6}' for.header`
+
+ set nx = `awk '{print $1}' inv.header`
+ set nz = `awk '{print $3}' inv.header`
+
+set dx = `echo $xmin $xmax $nx | awk '{print ($2-$1)/$3}'`
+set dz = `echo $zmin $zmax $nz | awk '{print ($2-$1)/$3}'`
+
+echo Die Inkremente sind $dx und $dz
+
+set range =  $xmin/$xmax/$zmin/$zmax
+
+ gmt xyz2grd vel_$n.xyz -GV$n.grd -R$range -V -I$dx/$dz
+ gmt xyz2grd ray_$n.xyz -GR$n.grd -R$range -V -I$dx/$dz
+end
+
+# hier wird Anzahl der hit-counts -1 (moeglich waere auch mehr) gerechnet
+# und dann die WUrzel (SQRT) gezogen, heisst fuer Bloecke mit 0 hit-counts
+# kommt not a number raus und der Bereich bleibt grau, bei groesseren Zahlen
+# koennen dementsprechend auch Bereiche mit mehr hit-counts ausgeblendet werden
+
+
+
+foreach n ( `seq 0 1 $n` )
+  awk '{if ("'$n'"==$1) printf"%10d%10d%10d\n",$2,1,$3}' i.dat >! inv.header
+ set xmin = `awk '{print $1}' for.header`
+ set xmax = `awk '{print $2}' for.header`
+ set zmin = `awk '{print $5}' for.header`
+ set zmax = `awk '{print $6}' for.header`
+
+ set nx = `awk '{print $1}' inv.header`
+ set nz = `awk '{print $3}' inv.header`
+
+set dx = `echo $xmin $xmax $nx | awk '{print ($2-$1)/$3}'`
+set dz = `echo $zmin $zmax $nz | awk '{print ($2-$1)/$3}'`
+  echo processing grid $n
+# R0.grd - R4.grd (z.B., fuer jede Blockgroesse) Anzahl an Strahlen pro Knotenpunkt
+# V0.grd - V4.grd (z.B.) - Geschwindigkeitsmodel
+# x0.grd - x4.grd - maskiertes Geschwindigkeitsmdoel
+#  grdsample R1.grd -I$dx/$dz -Gtmp.grd -Q
+#  grdmath tmp.grd 10 SUB SQRT  = rx.grd
+  gmt grdmath R$n.grd 2 SUB SQRT  = rx.grd
+  gmt grdmath V$n.grd rx.grd OR = x$n.grd
+end
