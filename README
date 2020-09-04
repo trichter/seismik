@@ -22,7 +22,7 @@ Installation:
   - rm Miniconda3-latest-Linux-x86_64.sh
   - conda config --add channels conda-forge
 * Conda environment installieren
-  - conda create -n seis obspy git utm cartopy ipython folium geographiclib pdbpp  # pyproj pyshp shapely tqdm h5py sympy gdal gcc_linux-64 gfortran_linux-64 statsmodels spyder jupyter pandas
+  - conda create -n seis obspy git utm cartopy ipython folium geographiclib pdbpp
   - conda activate seis
 * Weitere Pakete installieren
   - Benötigte Pakete: GMT5, tcshell, SeismicUnix, diverse lib32 Pakete für FAST und seismicunix
@@ -36,7 +36,7 @@ Installation:
   - seispick  (einige Picks sind schon gesetzt, in seispick einmal w drücken, dann sollte Datei fb_all1.dat erstellt werden)
   - cp fb_all1.dat INV/fb_all.dat
   - cd INV
-  - ./xinv (Inversion gestartet, sollte eine Weile laufen, ein Plot mit einem Startmodell sollte sich öffnen)
+  - ./xinv (Inversion gestartet, sollte eine ganze Weile laufen, ein Plot mit einem Startmodell sollte sich öffnen)
 
 Benutzung:
 * Skripte
