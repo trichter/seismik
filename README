@@ -37,7 +37,9 @@ Installation:
   - seispick  (einige Picks sind schon gesetzt, in seispick einmal w drücken, dann sollte Datei fb_all1.dat erstellt werden)
   - cp fb_all1.dat INV/fb_all.dat
   - cd INV
-  - ./xinv (Inversion gestartet, sollte eine ganze Weile laufen, ein Plot mit einem Startmodell sollte sich öffnen)
+  - ./xinv (Inversion gestartet, sollte eine ganze Weile laufen, ein Plot mit einem Startmodell sollte sich öffnen, am Ende sollte eine Datei x.ps vorhanden sein)
+  - cd ../GMT
+  - ./plot_modell.gmt (sollte Datei vp.png erstellen)
 
 Benutzung:
 * Skripte
