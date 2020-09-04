@@ -32,6 +32,7 @@ Installation:
   -> Bitte um Rückmeldung, welche Befehle genau ausgeführt wurden, damit ich das hier ergänzen kann.
 * Installation testen:
   - conda activate seis
+  - cd data_example
   - python geo.py
   - seispick  (einige Picks sind schon gesetzt, in seispick einmal w drücken, dann sollte Datei fb_all1.dat erstellt werden)
   - cp fb_all1.dat INV/fb_all.dat
