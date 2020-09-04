@@ -182,7 +182,7 @@ class MPLSeisPicker(object):
             print(__doc__)
             sys.exit()
         self.pickmode = expr is None
-        self.nshot = 1 if nshot is None else nshot
+        self.nshot = 1 if nshot is None else int(nshot)
         self.opt = SimpleNamespace(
             norm=1, normalize=True, cut=False,
             apply_filter=False, filter=None,
