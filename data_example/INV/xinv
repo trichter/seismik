@@ -179,11 +179,11 @@ $EXEDIR/xyz2bath < bathy.rsp
 
 ##Create initial model##
 echo "Erstelle Startmodell"
-#cat topo2.dat | awk '{print $1, $3}' | awk '{if(NR==1 && $1!='$xmin')print '$xmin',$2; print $0}END{if($1!='$xmax')print '$xmax',$2}' | gmt sample1d -Fl -I$dx | awk '{for(i=1;i<='$nz';i++){z=(i-1)*'$dx'+'$zmin';if(z<$2){printf("%10.3f %10.3f %7.3f\n",$1,z,'$vair')}else{printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad'+'$vtop')}}}' > startmod.xyz
+cat topo2.dat | awk '{print $1, $3}' | awk '{if(NR==1 && $1!='$xmin')print '$xmin',$2; print $0}END{if($1!='$xmax')print '$xmax',$2}' | gmt sample1d -Fl -I$dx | awk '{for(i=1;i<='$nz';i++){z=(i-1)*'$dx'+'$zmin';if(z<$2){printf("%10.3f %10.3f %7.3f\n",$1,z,'$vair')}else{printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad'+'$vtop')}}}' > startmod.xyz
 
 #cat topo2.dat | awk '{if((NR+33)%100==0)print $1,$3}' | awk '{if(NR==1 && $1!='$xmin')print '$xmin',$2; print $0}END{if($1!='$xmax')print '$xmax',$2}' | gmt sample1d -Fl -I$dx | awk '{for(i=1;i<='$nz';i++){z=(i-1)*'$dx'+'$zmin';if(z<$2){printf("%10.3f %10.3f %7.3f\n",$1,z,'$vair')}else{printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad'+'$vtop')}}}' > startmod.xyz
 
-cat topo2.dat | awk '{if((NR+33)%100==0)print $1, $3}' | awk '{if(NR==1 && $1!='$xmin')print '$xmin',$2; print $0}END{if($1!='$xmax')print '$xmax',$2}' | gmt sample1d -Fl -I$dx   | awk '{for(i=1;i<='$nz';i++){z=(i-1)*'$dx'+'$zmin';if(z<$2){printf("%10.3f %10.3f %7.3f\n",$1,z,'$vair')}else{if($1<80){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad1'+'$vtop')}else{if($1<160){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad2'+'$vtop')}else{if($1<240){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad3'+'$vtop')}else{if($1<500){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad4'+'$vtop')}}}}}}}' > startmod.xyz
+#cat topo2.dat | awk '{if((NR+33)%100==0)print $1, $3}' | awk '{if(NR==1 && $1!='$xmin')print '$xmin',$2; print $0}END{if($1!='$xmax')print '$xmax',$2}' | gmt sample1d -Fl -I$dx   | awk '{for(i=1;i<='$nz';i++){z=(i-1)*'$dx'+'$zmin';if(z<$2){printf("%10.3f %10.3f %7.3f\n",$1,z,'$vair')}else{if($1<80){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad1'+'$vtop')}else{if($1<160){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad2'+'$vtop')}else{if($1<240){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad3'+'$vtop')}else{if($1<500){printf("%10.3f %10.3f %7.3f\n",$1,z,(z-$2)*'$grad4'+'$vtop')}}}}}}}' > startmod.xyz
 
 
 cat startmod.xyz | gmt xyz2grd -R$r -I$dx -Gstartmod.grd
