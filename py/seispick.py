@@ -265,6 +265,8 @@ class MPLSeisPicker(object):
         canvas.mpl_connect('key_press_event', self.keypress)
         canvas.mpl_connect('button_press_event',
                            lambda event:canvas._tkcanvas.focus_set())
+        self.set_filter()
+        self.set_picker()
 
         print(__doc__)
         print(_key_doc)
