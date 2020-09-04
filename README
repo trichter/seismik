@@ -10,13 +10,12 @@ fast/*
 data_example/*
 
 Installation:
-
-* Repository herunterladen oder klonen
-* Dateien im bin Ordner ausführbar machen und in einen bin Ordner packen (export PATH=.:~/bin:$PATH)
-* Dateien im py Ordner für Python findbar machen (export PYTHONPATH=~/py:$PYTHONPATH)
-* FAST Ordner als Variable setzen (export FAST=~/fast)
-* Die obigen Befehle können z.B. in der Datei .bashrc hinterlegt werden
-
+* Skripte installieren
+  - Repository herunterladen oder klonen
+  - Dateien im bin Ordner ausführbar machen und in einen bin Ordner packen (export PATH=.:~/bin:$PATH)
+  - Dateien im py Ordner für Python findbar machen (export PYTHONPATH=~/py:$PYTHONPATH)
+  - FAST Ordner als Variable setzen (export FAST=~/fast)
+  - Die obigen Befehle können z.B. in der Datei .bashrc hinterlegt werden
 * Anaconda installieren
   - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
   - bash Miniconda3-latest-Linux-x86_64.sh
@@ -31,6 +30,13 @@ Installation:
   - SeismicUnix: https://wiki.seismic-unix.org und https://wiki.seismic-unix.org/sudoc:su_installation
   - TODO: Welche lib32-Pakete werden genau benötigt? Wenn Fehler beim Starten von FAST oder der Installation von SU auftreten, diese Fehler googeln, das gibt Hinweise auf fehlende lib32 Pakete.
   -> Bitte um Rückmeldung, welche Befehle genau ausgeführt wurden, damit ich das hier ergänzen kann.
+* Installation testen:
+  - conda activate seis
+  - python geo.py
+  - seispick  (einige Picks sind schon gesetzt, in seispick einmal w drücken, dann sollte Datei fb_all1.dat erstellt werden)
+  - cp fb_all1.dat INV/fb_all.dat
+  - cd INV
+  - ./xinv (Inversion gestartet, sollte eine Weile laufen, ein Plot mit einem Startmodell sollte sich öffnen)
 
 Benutzung:
 * Skripte
