@@ -1,4 +1,4 @@
-# (C) 2018, Tom Eulenfeld, MIT license
+# (C) 2018-2020, Tom Eulenfeld, MIT license
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,7 +17,6 @@ def odr_regr(x, y):
     mydata = Data(x, y, wd=1, we=1)
     myodr = ODR(mydata, linear, beta0=[1., 2.])
     res = myodr.run()
-    #res.pprint()
     return res.beta
 
 
@@ -86,7 +85,6 @@ def read_coords(fname, delimiter=',', sort=True):
         x = [x[i] for i in ind]
         y = [y[i] for i in ind]
         z = [z[i] for i in ind]
-
     return names, np.array(nums), np.array(x), np.array(y), np.array(z)
 
 
@@ -96,6 +94,7 @@ def test_project_coords():
     m, b = odr_regr(x, y)
     xp, yp = project_coordinates(x, y, m, b)
     plot_projection(x, y, xp, yp, m, b)
+
 
 def write_geo(x, y, z, x0, y0, sps, fname1, fname2, rec0=1, sort=False):
     """Write profil files (receivers and shots)
@@ -119,9 +118,27 @@ def write_geo(x, y, z, x0, y0, sps, fname1, fname2, rec0=1, sort=False):
         z2 = [a for _, a in sorted(zip(pos2, z2))]
         pos = sorted(pos)
         pos2 = sorted(pos2)
-
     np.savetxt(fname2, list(zip(num2, pos2, z2)), fmt=fmt)
     np.savetxt(fname1, list(zip(num, pos, z)), fmt=fmt)
+
+
+def profilemeter2xy(meters, x, y, print_lines=False):
+    dy = y[-1] - y[0]
+    dx = x[-1] - x[0]
+    alpha = np.arctan2(dy, dx)
+    res = [(meter * np.cos(alpha) + x[0],
+            meter * np.sin(alpha) + y[0]) for meter in meters]
+    if print_lines:
+        for i, (x2, y2), in enumerate(res):
+            print(f'x{i}={x2-200000:.3f} y{i}={y2:.3f} z{i}=',)
+    return res
+
+
+def interpolate_geophones(nums, x, y, z, nnums=None):
+    if nnums is None:
+        nnums = np.arange(nums[0], nums[-1]+1)
+    res = [np.interp(nnums, nums, coordpart) for coordpart in (x, y, z)]
+    return res
 
 
 if __name__ == '__main__':
