@@ -75,6 +75,6 @@ Benutzung:
   - synthetische Laufzeiten werden nun angezeigt und die Picks können gegebenfalls angepasst werden
 
 * Bonus 2 - vtk-Datei für Paraview erstellen
-  - Skript vtk/conv_raster2vtk.tcsh anpassen und ausführen
+  - Skript vtk/conv_raster2vtk anpassen und ausführen
   - Dimensionen der grd Dateien können mit gmt grdinfo ermittelt werden
   - Zugehörige Koordinaten des Modells können mit geo.py ermittelt werden

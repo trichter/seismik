@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#x0, y0, z0, x1, y1, z1 from xinv
+#x0, y0, x1, x2 utm coordinates from geo.py
+# n1, n2 from gmt grdinfo ../GMT/vp.grd
+
+\cp ../GMT/vp.bin vp.bin
+\cp ../GMT/r.bin r.bin
+raster2vtk   axis=Z x0=-10 y0=0  z0=290  x1=340  y1=0 z1=460  n1=601  n2=181 raster1=vp.bin raster2=r.bin descrip1=velocity descrip2=ray_hit_count vtkfile=ProfilDS.vtk format=binary
+raster2vtk   axis=Z x0=614071.271 y0=5629928.081 z0=370 x1=414240.668 y1=5630175.679 z1=460  n1=601  n2=181 raster1=vp.bin raster2=r.bin descrip1=velocity descrip2=ray_hit_count vtkfile=ProfilDS_utm.vtk format=binary
