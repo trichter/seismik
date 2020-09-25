@@ -4,10 +4,9 @@ usage picking tool: seispick  (needs seisconf.json)
 usage plotting tool: seispick RAW/{}.dat
 usage plotting tool: seispick RAW/{}.dat shot_number
 
-version 2020.09.02 remove downsample option again
-                   instead create textboxes in Tkinter for faster plotting
-version 2020.09.01 add downsample option for faster? plotting
-                   supress ObsPy warning when reading data
+version 2020.09 create textboxes in Tkinter for faster plotting
+                supress ObsPy warning when reading data
+                option to reload config
 version 2019.09 add delay config option for seisconf.json
 version 2019.05 first version
 
