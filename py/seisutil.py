@@ -1,6 +1,5 @@
-# (C) 2018, Tom Eulenfeld, MIT license
+# (C) 2018-2020, Tom Eulenfeld, MIT license
 
-import numpy as np
 import tempfile
 
 def parse(bla):

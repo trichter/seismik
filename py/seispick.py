@@ -1,4 +1,4 @@
-# (C) 2018, Tom Eulenfeld, MIT license
+# (C) 2018-2020, Tom Eulenfeld, MIT license
 """
 usage picking tool: seispick  (needs seisconf.json)
 usage plotting tool: seispick RAW/{}.dat
@@ -9,7 +9,7 @@ version 2020.09.02 remove downsample option again
 version 2020.09.01 add downsample option for faster? plotting
                    supress ObsPy warning when reading data
 version 2019.09 add delay config option for seisconf.json
-version 2019.05
+version 2019.05 first version
 
 Upon start set terminal to "always on top" and enlarge matplotlib figure.
 """
@@ -31,12 +31,12 @@ g/b: increase/decrease amplitude (gain)
 c: clip on/off
 n: normalize on/off
 p: switch polarity
-
 f: apply/remove filter
 a/A: apply autopicker for traces on the right/left
 m: fit line to two points
-x: replot
 
+x: replot
+l: reload configuration
 I: start IPython session
 
 Set shot number in textbox 1
@@ -84,6 +84,7 @@ def write_picks(picks, fname1, fname2=None, stuff=None, conf=None):
         return
     ch2rec = stuff.ch2rec
 
+
     def spreadch2ch(sp, ch):
         return ch - 1 + stuff.spread_from_sp[sp]['channels'][0]
     sht, channel, pick = zip(
@@ -110,7 +111,6 @@ def write_picks(picks, fname1, fname2=None, stuff=None, conf=None):
 
 
 def calc_backshots(shotpoints, spreads, verbose=True):
-    shotpoints_r = {r: sp for sp, r in shotpoints.items()}
     all_channels = sorted(set().union(
         *[set(spread['channels']) for spread in spreads]))
     missing_channels = [ch for ch in range(
@@ -121,13 +121,15 @@ def calc_backshots(shotpoints, spreads, verbose=True):
               ch for ch in all_channels}
     spread_from_sp = {sp: spread for spread in spreads
                       for sp in spread['shotpoints']}
+    shotpoints_r = {(r, spread_from_sp[sp]['shotpoints'][0]): sp for sp, r in shotpoints.items()}
     backshots = {}
     for sp, rshot in shotpoints.items():
         for ch in spread_from_sp[sp]['channels']:
             spreadch = ch - spread_from_sp[sp]['channels'][0] + 1
+            ind_spr = (ch2rec[ch], spread_from_sp[sp]['shotpoints'][0])
             if (shotpoints[sp] != ch2rec[ch] and ch in ch2rec and
-                    ch2rec[ch] in shotpoints_r):
-                sp2 = shotpoints_r[ch2rec[ch]]
+                    ind_spr in shotpoints_r):
+                sp2 = shotpoints_r[ind_spr]
                 if rec2ch[rshot] in spread_from_sp[sp2]['channels']:
                     spreadch2 = rec2ch[rshot] - \
                         spread_from_sp[sp2]['channels'][0] + 1
@@ -199,33 +201,11 @@ class MPLSeisPicker(object):
             self.conf = SimpleNamespace(expr=expr, stack=False, delay=0,
                                         nshot_max=9999)
         else:
-            import seisutil as su
-            with open('seisconf.json') as f:
-                sc = json.load(f)
-            self.synthetic = sc.get('synthetic', None)
-            if self.synthetic is not None:
-                self.synthetic = load_picks(sc['synthetic'])
-            shotpoints = su.read_shotpoints(sc['info'] + 'shotpoints.txt',
-                                            verbose=True)
-            spreads = su.read_spreads(sc['info'] + 'spreads.txt', verbose=True)
-            filenumbers = su.read_filenumbers(sc['info'] + 'filenumbers.txt',
-                                              verbose=True)
-            self.conf = SimpleNamespace(
-                expr=sc['expr'], stack=sc['stack'], info=sc['info'],
-                error=sc['error'], delay=sc.get('delay', 0.0),
-                filenumbers=filenumbers, shotpoints=shotpoints,
-                #                    nshot_max=sorted(shotpoints)[-1],
-                nshot_max=max(shotpoints),
-                spreads=spreads,
-                ref_depth=sc['ref_depth'],
-                num_pt=sc['number_pick_types'],
-                pick_colors=sc['pick_colors'])
+            self.load_conf()
             self.all_picks = [load_picks('picks{}.txt'.format(i+1))
                               for i in range(self.conf.num_pt)]
             self.picktype = 0
             self.picks = self.all_picks[self.picktype]
-            # calculation for backshots and for writing fb_all.dat
-            self.stuff = calc_backshots(shotpoints, spreads)
         filter0 = 'LP 100 2 1'
         picker0 = '0.8 -1e-3 1e-3 -2e-3 3e-3'
 
@@ -271,6 +251,30 @@ class MPLSeisPicker(object):
         print(__doc__)
         print(_key_doc)
 
+    def load_conf(self):
+        import seisutil as su
+        with open('seisconf.json') as f:
+            sc = json.load(f)
+        self.synthetic = sc.get('synthetic', None)
+        if self.synthetic is not None:
+            self.synthetic = load_picks(sc['synthetic'])
+        shotpoints = su.read_shotpoints(sc['info'] + 'shotpoints.txt',
+                                        verbose=True)
+        spreads = su.read_spreads(sc['info'] + 'spreads.txt', verbose=True)
+        filenumbers = su.read_filenumbers(sc['info'] + 'filenumbers.txt',
+                                          verbose=True)
+        self.conf = SimpleNamespace(
+            expr=sc['expr'], stack=sc['stack'], info=sc['info'],
+            error=sc['error'], delay=sc.get('delay', 0.0),
+            filenumbers=filenumbers, shotpoints=shotpoints,
+            nshot_max=max(shotpoints),
+            spreads=spreads,
+            ref_depth=sc['ref_depth'],
+            num_pt=sc['number_pick_types'],
+            pick_colors=sc['pick_colors'])
+        # calculation for backshots and for writing fb_all.dat
+        self.stuff = calc_backshots(shotpoints, spreads)
+
     def keypress(self, event):
         if event.inaxes != self.ax:
             return
@@ -308,6 +312,9 @@ class MPLSeisPicker(object):
             print(f'Filter turned {_oo(self.opt.apply_filter)}')
             self.plot('update_stream')
         elif event.key == 'x':
+            self.plot('new_shot')
+        elif event.key == 'l':
+            self.load_conf()
             self.plot('new_shot')
         elif event.key in ('-', '+'):
             if event.key == '+':
@@ -366,11 +373,8 @@ class MPLSeisPicker(object):
         elif event.key in 'sw':
             print('Save picks')
             for i in range(self.conf.num_pt):
-                try:
-                    write_picks(self.all_picks[i], f'picks{i+1}.txt',
+                write_picks(self.all_picks[i], f'picks{i+1}.txt',
                                 f'fb_all{i+1}.dat', stuff=self.stuff, conf=self.conf)
-                except Exception as ex:
-                    print(ex)
         elif event.key == self.state.last_key == 'm':
             x1, y1, x2, y2 = event.xdata, event.ydata, *self.state.last_xy
             if not (x1 is None or x2 is None or y1 is None or y2 is None):
@@ -434,11 +438,14 @@ class MPLSeisPicker(object):
             self.e1.insert(0, str(self.nshot))
         else:
             try:
-                self.nshot = int(self.e1.get())
+                nshot = int(self.e1.get())
+                if nshot > self.conf.nshot_max or nshot < 1:
+                    raise Exception
             except Exception:
                 print('Error in nshot textbox')
                 self.e1.focus_set()
             else:
+                self.nshot = nshot
                 self.canvas.get_tk_widget().focus_set()
         self.opt.hide_trace = defaultdict(bool)
         self.plot('new_shot')
@@ -508,7 +515,7 @@ class MPLSeisPicker(object):
                     self.state.pickmarkers[ind].set_visible(
                         pick_points != (0, 0))
                     bpicks = []
-                    for i in range(len(stream)):
+                    for i in range(len(stream)+1):
                         if (self.nshot, i) in self.stuff.backshots:
                             bs = self.stuff.backshots[(self.nshot, i)]
                             if bs[1] in picks[bs[0]]:
@@ -530,7 +537,7 @@ class MPLSeisPicker(object):
         pick0 = self.picks[self.nshot][x]
         tr0 = self.stream[x-1]
         autopick = self.opt.autopick
-        trel = tr0.stats.starttime
+        trel = tr0.stats.starttime - self.conf.delay
         t1 = pick0 + autopick.t1
         t2 = pick0 + autopick.t2
         template = tr0.slice(trel + t1, trel + t2)
@@ -569,6 +576,7 @@ class MPLSeisPicker(object):
             print(f'receiver {x:3d}: set pick at {pick:.3f}s')
             self.picks[self.nshot][x] = pick
             pick0 = pick0 + autopick.t3 + index * tr0.stats.delta
+
 
     def read_stream(self):
         conf = self.conf
