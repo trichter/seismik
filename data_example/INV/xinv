@@ -2,8 +2,8 @@
 
 ##Path##
 set EXEDIR = $FAST/bin2d
-set DATA = ../PROCESSING
-set SU = data.su
+#set DATA = ../PROCESSING
+#set SU = data.su
 
 
 ##Model boundary##
@@ -170,7 +170,7 @@ EOF
 
 runchk:
 ##Bathymetry for FAST##
-cat ../GEO/sou_xz.dat | awk '{if($2<='$xmax' && $2>='$xmin')print $0}'| awk '{if(NR==1 && $2>'$xmin'){print '$xmin','$elev'-$3};print $2,'$elev'-$3;x=$2}END{if(x<'$xmax'){print '$xmax','$elev'-$3};}' | gmt sample1d -I$dx -Fl | awk '{print $1,$2-2*'$dx'}'  > topo.dat
+cat ../GEO/rec_xz.dat | awk '{if($2<='$xmax' && $2>='$xmin')print $0}'| awk '{if(NR==1 && $2>'$xmin'){print '$xmin','$elev'-$3};print $2,'$elev'-$3;x=$2}END{if(x<'$xmax'){print '$xmax','$elev'-$3};}' | gmt sample1d -I$dx -Fl | awk '{print $1,$2-2*'$dx'}'  > topo.dat
 cat topo.dat | awk '{print $1,0,$2}' >! topo2.dat
 echo topo2.dat >! bathy.rsp
 $EXEDIR/xyz2bath < bathy.rsp
