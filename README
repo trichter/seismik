@@ -42,18 +42,17 @@ Installation:
   - ./plot_modell.gmt (sollte Datei vp.png erstellen)
 
 Benutzung:
-* Skripte
+* Übersicht
   - geo.py    Projiziert Koordinaten auf Linie und schreibt Dateien rec_xy.dat und sou_xy.dat für FAST-Skripte, muss entsprechend der Koordinaten-Datei angepasst werden
-  - map.py    erstellt Folium-Landkarte, muss entsprechend der Koordinaten-Datei angepasst werden
+  - map.py    erstellt Folium-Landkarte, muss entsprechend der Koordinaten-Datei angepasst werden (fakultativ)
   - bin/seispick   Plotting und Picking Tool: erstellt picks.txt und fb_all1.dat für FAST, siehe Hilfe (seispick -h), benötigt zum erstellen von fb_all1.dat Output von geo.py
-* Konkretes Vorbereitungen
+* Konkrete Vorbereitungen
   - data_example Ordner kopieren und umbenennen
-  - Bei Bedarf Beispieldaten in RAW löschen und Messdaten kopieren
+  - Beispieldaten in RAW löschen und Messdaten kopieren
   - seisconf.json und GEO Ordner: Dateien gemäß Kampagne anpassen
-  - map.py und geo.py anpassen
+  - geo.py anpassen
 * Skripte starten
   - conda activate seis
-  - python map.py
   - python geo.py
   - seispick
 * Nun kommt FAST
@@ -68,9 +67,14 @@ Benutzung:
   - GMT/plot_modell plottet finales Modell und Strahlwege
   - GMT/plot_lcurve plottet RMS
 
-* Bonus - Mögliche Vorwärtsmodellierung:
+* Bonus - Vorwärtsmodellierung:
   - in xinv um Zeile 36 bei `goto FWD` oder `goto FWD2` Kommentarzeichen entfernen
   - Forwärtsmodellierung mit xinv-Skript starten
   - mit Skript fwd2synpicks.py Daten lesen und umwandeln
   - seisonf.json anpassen und seispick starten
   - synthetische Laufzeiten werden nun angezeigt und die Picks können gegebenfalls angepasst werden
+
+* Bonus 2 - vtk-Datei für Paraview erstellen
+  - Skript vtk/conv_raster2vtk.tcsh anpassen und ausführen
+  - Dimensionen der grd Dateien können mit gmt grdinfo ermittelt werden
+  - Zugehörige Koordinaten des Modells können mit geo.py ermittelt werden
