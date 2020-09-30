@@ -23,6 +23,7 @@ s/w: write picks to file
 F1,F2,..: switch pick type
 o: goto shot number of backshot
 h: hide trace
+i: show individual traces of stack
 left/right: go left/right
 up/down: go up/down
 
@@ -44,11 +45,13 @@ Set autopicker in textbox 3: threshold min_time_template max_time_template min_t
 """
 
 from collections import defaultdict
+from copy import copy
 import json
 import os.path
 import sys
 from types import SimpleNamespace
 import warnings
+from warnings import warn
 
 import matplotlib as mpl
 MS = mpl.rcParams['lines.markersize']
@@ -189,13 +192,16 @@ class MPLSeisPicker(object):
             apply_filter=False, filter=None,
             polarity=1,
             downsample=1,
+            individual=False,
             hide_trace=defaultdict(bool)
         )
         self.state = SimpleNamespace(
             last_key=None, last_xy=None,
             pickmarkers=[None, None], wiggles=None)
         self.stream = None
+        self.stream_all = None
         self.ostream = None
+        self.ostream_all = None
         if not self.pickmode:
             self.conf = SimpleNamespace(expr=expr, stack=False, delay=0,
                                         nshot_max=9999)
@@ -244,6 +250,7 @@ class MPLSeisPicker(object):
         canvas.mpl_connect('key_press_event', self.keypress)
         canvas.mpl_connect('button_press_event',
                            lambda event:canvas._tkcanvas.focus_set())
+        canvas.mpl_connect('pick_event', self.on_pick)
         self.set_filter()
         self.set_picker()
 
@@ -274,6 +281,18 @@ class MPLSeisPicker(object):
             )
         # calculation for backshots and for writing fb_all.dat
         self.stuff = calc_backshots(shotpoints, spreads)
+
+    def on_pick(self, event):
+        line = event.artist
+        for i, l in self.state.wiggles.items():
+            if l == line:
+                stream = self.stream_all if self.opt.individual else self.stream
+                print('You clicked on trace')
+                tr = stream[i]
+                time = tr.stats.endtime - tr.stats.starttime
+                sr = tr.stats.sampling_rate
+                print(tr.id[:-1], f'| {time:.2f}s  {sr:.1f}Hz')
+                break
 
     def keypress(self, event):
         if event.inaxes != self.ax:
@@ -313,6 +332,12 @@ class MPLSeisPicker(object):
             self.plot('update_stream')
         elif event.key == 'x':
             self.plot('new_shot')
+        elif event.key == 'i':
+            if self.conf.stack:
+                self.opt.individual = not self.opt.individual
+                self.plot('new_shot')
+            else:
+                print('Cannot plot individual shots for stack=False')
         elif event.key == 'l':
             self.load_conf()
             self.plot('new_shot')
@@ -460,12 +485,14 @@ class MPLSeisPicker(object):
         if mind < 2:
             self.fig.suptitle('shot %s' % self.nshot)
             try:
-                self.ostream = self.read_stream()
+                self.read_stream()
             except FileNotFoundError as ex:
                 print(ex)
                 self.ax.plot(self.ax.get_xlim(), self.ax.get_ylim(), 'r', lw=5)
                 self.fig.canvas.draw()
                 return
+            self.ostream = self.stream
+            self.ostream_all = self.stream_all
         if mind < 3:
             stream = self.ostream.copy()
             if self.opt.apply_filter:
@@ -475,11 +502,23 @@ class MPLSeisPicker(object):
             else:
                 stream.normalize(global_max=True)
             self.stream = stream
+            if self.conf.stack:
+                stream_all = self.ostream_all.copy()
+                if self.opt.apply_filter:
+                    stream_all.filter(**self.opt.filter)
+                if self.opt.normalize:
+                    stream_all.normalize()
+                else:
+                    stream_all.normalize(global_max=True)
+                self.stream_all = stream_all
+        if self.opt.individual:
+            stream = self.stream_all
         else:
             stream = self.stream
         if mind < 2:
             self.ax.clear()
             self.state.wiggles = {}
+            self.ax.axhline(color='0.8')
         elif mind < 4:
             self.ax.collections.clear()
         if mind < 4:
@@ -490,12 +529,21 @@ class MPLSeisPicker(object):
                     out = np.clip(out, -0.45, 0.45)
                 times = tr.times('relative')[::ds] + self.conf.delay
                 if mind < 2:
+                    colors = ['k']
+                    n1 = len(self.stream)
+                    if self.opt.individual:
+                        cmap = mpl.cm.get_cmap('viridis')
+                        n = len(self.stream_all) // n1
+                        colors = cmap(np.linspace(0, 1, n))
                     self.state.wiggles[i], = self.ax.plot(
-                        1 + i + out, times, 'k', lw=0.5)
+                        tr.stats.geofon + out, times,
+                        color=colors[i // n1], lw=1,
+                        picker=True, pickradius=0.5)
                 else:
-                    self.state.wiggles[i].set_data(1 + i + out, times)
+                    self.state.wiggles[i].set_data(1 + tr.stats.geofon + out, times)
                 self.state.wiggles[i].set_visible(not self.opt.hide_trace[i+1])
-                if self.opt.polarity != 0 and not self.opt.hide_trace[i+1]:
+                if (self.opt.polarity != 0 and not self.opt.hide_trace[i+1]
+                        and not self.conf.stack):
                     self.ax.fill_betweenx(
                         times, 1+i, 1+i+out, where=out*self.opt.polarity > 0,
                         facecolor='k')
@@ -580,37 +628,43 @@ class MPLSeisPicker(object):
 
     def read_stream(self):
         conf = self.conf
-        if conf.stack:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=UserWarning)
-                streams_in = [read(conf.expr.format(num))
-                              for num in conf.filenumbers[self.nshot]]
-            for traces in zip(*streams_in):
-                set1 = {tr.stats.seg2.CHANNEL_NUMBER for tr in traces}
-                set2 = {tr.stats.seg2.RECEIVER_LOCATION for tr in traces}
-                assert len(set1) == 1
-                assert len(set2) == 1
-                traces[0].data = np.mean([tr.data for tr in traces], axis=0)
-            stream = streams_in[0]
-        else:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=UserWarning)
-                stream = read(conf.expr.format(self.nshot))
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            if conf.stack:
+                streams = [read(conf.expr.format(num))
+                           for num in conf.filenumbers[self.nshot]]
+            else:
+                streams = [read(conf.expr.format(self.nshot))]
+            for j, stream in enumerate(streams):
+                for i, tr in enumerate(stream):
+                    tr.stats.network = f'SP{self.nshot}'
+                    tr.stats.station = f'GF{i+1}'
+                    if conf.stack:
+                        tr.stats.location = f'F{conf.filenumbers[self.nshot][j]}'
+                    tr.stats.geofon = i + 1
+                    tr.stats.shot = self.nshot
+                    try:
+                        assert int(tr.stats.seg2.CHANNEL_NUMBER) == i+1
+                    except:
+                        warn('SEG2 channel number does not match, check data')
         if self.pickmode:
             spread = self.stuff.spread_from_sp[self.nshot]
-            if 'mute' in spread:
-                for r in spread['mute']:
-                    stream[r-1].data[:] = 0
-            if 'polarity' in spread:
-                for r in spread['polarity']:
-                    stream[r-1].data = -stream[r-1].data
-            if 'order' in spread:
-                for r1, r2 in spread['order']:
-                    if r1 == 1:
-                        stream[:r2] = stream[r2-1::-1]
-                    else:
-                        stream[r1-1:r2] = stream[r2-1:r1-2:-1]
-        return stream
+            for stream in streams:
+                if 'mute' in spread:
+                    for r in spread['mute']:
+                        stream[r-1].data[:] = 0
+                if 'polarity' in spread:
+                    for r in spread['polarity']:
+                        stream[r-1].data = -stream[r-1].data
+                if 'order' in spread:
+                    for r1, r2 in spread['order']:
+                        if r1 == 1:
+                            stream[:r2] = stream[r2-1::-1]
+                        else:
+                            stream[r1-1:r2] = stream[r2-1:r1-2:-1]
+        self.stream_all = sum(streams[1:], streams[0])
+        self.stream = copy(self.stream_all).stack('{network}.{station}') if conf.stack else self.stream_all
+        return self.stream
 
 
 def run_picker():
