@@ -616,3 +616,7 @@ class MPLSeisPicker(object):
 def run_picker():
     p = MPLSeisPicker(*sys.argv[1:])
     tk.mainloop()
+
+
+if __name__ == '__main__':
+    run_picker()
