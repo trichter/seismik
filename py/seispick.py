@@ -263,14 +263,15 @@ class MPLSeisPicker(object):
         filenumbers = su.read_filenumbers(sc['info'] + 'filenumbers.txt',
                                           verbose=True)
         self.conf = SimpleNamespace(
-            expr=sc['expr'], stack=sc['stack'], info=sc['info'],
-            error=sc['error'], delay=sc.get('delay', 0.0),
+            expr=sc['expr'], stack=sc.get('stack', False), info=sc['info'],
+            error=sc.get('error', 0.008), delay=sc.get('delay', 0.0),
             filenumbers=filenumbers, shotpoints=shotpoints,
             nshot_max=max(shotpoints),
             spreads=spreads,
             ref_depth=sc['ref_depth'],
-            num_pt=sc['number_pick_types'],
-            pick_colors=sc['pick_colors'])
+            num_pt=sc.get('number_pick_types', 1),
+            pick_colors=sc.get('pick_colors', ['C0', 'C1', 'C2', 'C3', 'C4'])
+            )
         # calculation for backshots and for writing fb_all.dat
         self.stuff = calc_backshots(shotpoints, spreads)
 
