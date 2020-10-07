@@ -1,12 +1,20 @@
 # (C) 2018-2020, Tom Eulenfeld, MIT license
 """
-usage picking tool: seispick  (needs seisconf.json)
-usage plotting tool: seispick RAW/{}.dat
-usage plotting tool: seispick RAW/{}.dat shot_number
+Possible invocations:
+    seispick  (needs seisconf.json)
+    seispick shot_number (needs seisconf.json)
+    seispick RAW/{}.dat
+    seispick RAW/{}.dat shot_number
+    seispick RAW/1001.dat  (single file)
 
+    -v    verbose mode
+    -h    show help
+
+version 2020.10 options to reload config, plot individual traces
+                robust parsing of seisconf file and command line options
+                display all possible backshot picks
 version 2020.09 create textboxes in Tkinter for faster plotting
                 supress ObsPy warning when reading data
-                option to reload config
 version 2019.09 add delay config option for seisconf.json
 version 2019.05 first version
 
@@ -42,6 +50,8 @@ I: start IPython session
 Set shot number in textbox 1
 Set filter in textbox 2: HP/LP/BP freq1 (freq2) (order) (zerophase 0/1)
 Set autopicker in textbox 3: threshold min_time_template max_time_template min_time_data max_time_data
+Click wiggle for info on trace
+Click backshot pick for info
 """
 
 from collections import defaultdict
@@ -64,6 +74,9 @@ from obspy import read
 from obspy.signal.cross_correlation import correlate_template
 from scipy.linalg import lstsq
 import tkinter as tk
+
+
+_DEFAULT_PICK_COLORS = ['C0', 'C1', 'C2', 'C3', 'C4']
 
 
 def load_picks(fname):
@@ -123,23 +136,49 @@ def calc_backshots(shotpoints, spreads, verbose=True):
               ch for ch in all_channels}
     spread_from_sp = {sp: spread for spread in spreads
                       for sp in spread['shotpoints']}
-    shotpoints_r = {(r, spread_from_sp[sp]['shotpoints'][0]): sp for sp, r in shotpoints.items()}
+    _spread_id = lambda sp: spread_from_sp[sp]['shotpoints'][0]
+    shotpoints_rec = {(rec, _spread_id(sp)): sp
+                      for sp, rec in shotpoints.items()}
+    shotpoints_rec2 = {}
+    for sp, rec in shotpoints.items():
+        shotpoints_rec2[rec] = shotpoints_rec2.get(rec, ()) + (sp,)
     backshots = {}
-    for sp, rshot in shotpoints.items():
+    backshots2 = {}
+    for sp, recshot in shotpoints.items():
         for ch in spread_from_sp[sp]['channels']:
             spreadch = ch - spread_from_sp[sp]['channels'][0] + 1
-            ind_spr = (ch2rec[ch], spread_from_sp[sp]['shotpoints'][0])
-            if (shotpoints[sp] != ch2rec[ch] and ch in ch2rec and
-                    ind_spr in shotpoints_r):
-                sp2 = shotpoints_r[ind_spr]
-                if rec2ch[rshot] in spread_from_sp[sp2]['channels']:
-                    spreadch2 = rec2ch[rshot] - \
-                        spread_from_sp[sp2]['channels'][0] + 1
-                    backshots[(sp, spreadch)] = (sp2, spreadch2)
+            rec = ch2rec[ch]
+            if recshot != rec:
+                sp2 = shotpoints_rec.get((rec, _spread_id(sp)))
+                if sp2 is not None:
+                    if rec2ch[recshot] in spread_from_sp[sp2]['channels']:
+                        spreadch2 = rec2ch[recshot] - \
+                                spread_from_sp[sp2]['channels'][0] + 1
+                        backshots[(sp, spreadch)] = (sp2, spreadch2)
+                sps2 = shotpoints_rec2.get(rec, ())
+                for sp2 in sps2:
+                    if rec2ch[recshot] in spread_from_sp[sp2]['channels']:
+                        spreadch2 = rec2ch[recshot] - \
+                                spread_from_sp[sp2]['channels'][0] + 1
+                        ind = (sp, spreadch)
+                        ind2 = (sp2, spreadch2)
+                        backshots2[ind] = backshots2.get(ind, ()) + (ind2,)
+        for sp2, recshot2 in shotpoints.items():
+            if sp != sp2 and recshot == recshot2:  # second shot point at the same position
+                for ch in spread_from_sp[sp]['channels']:
+                    if ch in spread_from_sp[sp2]['channels']:
+                        spreadch = ch - spread_from_sp[sp]['channels'][0] + 1
+                        spreadch2 = ch - spread_from_sp[sp2]['channels'][0] + 1
+                        ind = (sp, spreadch)
+                        ind2 = (sp2, spreadch2)
+                        backshots2[ind] = backshots2.get(ind, ()) + (ind2,)
     if verbose:
         print('\nbackshots')
         print(backshots)
-    return SimpleNamespace(backshots=backshots, spread_from_sp=spread_from_sp,
+        print('\nall backshots')
+        print(backshots2)
+    return SimpleNamespace(backshots=backshots, backshots2=backshots2,
+                           spread_from_sp=spread_from_sp,
                            missing_channels=missing_channels, ch2rec=ch2rec)
 
 
@@ -172,6 +211,14 @@ def fit_line(x1, y1, x2, y2, fname=None):
     print(f'b = {b}')
 
 
+def _try_read_file(func, fname, verbose=True):
+    try:
+        return func(fname, verbose=verbose)
+    except FileNotFoundError as ex:
+        print("Don't worry, but", ex)
+        return None
+
+
 def _oo(b):
     return 'on' if b else 'off'
 
@@ -181,12 +228,22 @@ def _get_points(picks, nshot):
 
 
 class MPLSeisPicker(object):
-    def __init__(self, expr=None, nshot=None):
-        if expr in ('-h', '--help'):
+    def __init__(self, *args):
+        if '-h' in args or '--help' in args:
             print(__doc__)
             sys.exit()
-        self.pickmode = expr is None
-        self.nshot = 1 if nshot is None else int(nshot)
+        expr = None
+        nshot = None
+        verbose = False
+        for arg in args:
+            try:
+                nshot = int(arg)
+            except:
+                if arg == '-v':
+                    verbose = True
+                else:
+                    expr = arg
+        self.nshot = 1 if nshot is None else nshot
         self.opt = SimpleNamespace(
             norm=1, normalize=True, cut=False,
             apply_filter=False, filter=None,
@@ -202,15 +259,11 @@ class MPLSeisPicker(object):
         self.stream_all = None
         self.ostream = None
         self.ostream_all = None
-        if not self.pickmode:
-            self.conf = SimpleNamespace(expr=expr, stack=False, delay=0,
-                                        nshot_max=9999)
-        else:
-            self.load_conf()
-            self.all_picks = [load_picks('picks{}.txt'.format(i+1))
-                              for i in range(self.conf.num_pt)]
-            self.picktype = 0
-            self.picks = self.all_picks[self.picktype]
+        self.load_conf(expr=expr, verbose=verbose)
+        self.all_picks = [load_picks('picks{}.txt'.format(i+1))
+                          for i in range(self.conf.num_pt)]
+        self.picktype = 0
+        self.picks = self.all_picks[self.picktype]
         filter0 = 'LP 100 2 1'
         picker0 = '0.8 -1e-3 1e-3 -2e-3 3e-3'
 
@@ -257,30 +310,49 @@ class MPLSeisPicker(object):
         print(__doc__)
         print(_key_doc)
 
-    def load_conf(self):
+    def load_conf(self, expr=None, verbose=False):
         import seisutil as su
-        with open('seisconf.json') as f:
-            sc = json.load(f)
-        self.synthetic = sc.get('synthetic', None)
-        if self.synthetic is not None:
-            self.synthetic = load_picks(sc['synthetic'])
-        shotpoints = su.read_shotpoints(sc['info'] + 'shotpoints.txt',
-                                        verbose=True)
-        spreads = su.read_spreads(sc['info'] + 'spreads.txt', verbose=True)
-        filenumbers = su.read_filenumbers(sc['info'] + 'filenumbers.txt',
-                                          verbose=True)
+        try:
+            with open('seisconf.json') as f:
+                sc = json.load(f)
+        except FileNotFoundError as ex:
+            print("Dont't worry, but", ex)
+            sc = dict(expr=expr)
+            self.synthetic = None
+            kw = dict(nshot_max = 9999)
+            self.stuff = SimpleNamespace(spread_from_sp=None)
+        else:
+            if expr is not None:
+                raise ValueError('expr given as arg and in seisconf file')
+            self.synthetic = sc.get('synthetic', None)
+            if self.synthetic is not None:
+                self.synthetic = load_picks(sc['synthetic'])
+            shotpoints = _try_read_file(su.read_shotpoints, sc['info'] + 'shotpoints.txt', verbose=verbose)
+            spreads = _try_read_file(su.read_spreads, sc['info'] + 'spreads.txt', verbose=verbose)
+            filenumbers = _try_read_file(su.read_filenumbers, sc['info'] + 'filenumbers.txt', verbose=verbose)
+            # calculation for backshots and for writing fb_all.dat
+            try:
+                self.stuff = calc_backshots(shotpoints, spreads, verbose=verbose)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                print("Don't worry, not showing picks of backshots")
+                if spreads is not None:
+                    spread_from_sp = {sp: spread for spread in spreads
+                          for sp in spread['shotpoints']}
+                else:
+                    spread_from_sp = None
+                self.stuff = SimpleNamespace(spread_from_sp=spread_from_sp)
+            nshot_max = 9999 if shotpoints is None else max(shotpoints)
+            kw = dict(filenumbers=filenumbers, shotpoints=shotpoints,
+                      spreads=spreads, nshot_max=nshot_max)
         self.conf = SimpleNamespace(
-            expr=sc['expr'], stack=sc.get('stack', False), info=sc['info'],
+            expr=sc['expr'], stack=sc.get('stack', False), info=sc.get('info'),
             error=sc.get('error', 0.008), delay=sc.get('delay', 0.0),
-            filenumbers=filenumbers, shotpoints=shotpoints,
-            nshot_max=max(shotpoints),
-            spreads=spreads,
-            ref_depth=sc['ref_depth'],
+            ref_depth=sc.get('ref_depth', 0),
             num_pt=sc.get('number_pick_types', 1),
-            pick_colors=sc.get('pick_colors', ['C0', 'C1', 'C2', 'C3', 'C4'])
-            )
-        # calculation for backshots and for writing fb_all.dat
-        self.stuff = calc_backshots(shotpoints, spreads)
+            pick_colors=sc.get('pick_colors', _DEFAULT_PICK_COLORS),
+            **kw)
 
     def on_pick(self, event):
         line = event.artist
@@ -293,6 +365,19 @@ class MPLSeisPicker(object):
                 sr = tr.stats.sampling_rate
                 print(tr.id[:-1], f'| {time:.2f}s  {sr:.1f}Hz')
                 break
+        else:
+            print('You clicked on backshot')
+            x = int(round(event.artist.get_xdata()[event.ind][0]))
+            bss = self.stuff.backshots2.get((self.nshot, x), ())
+            for ind in range(self.conf.num_pt):
+                times = []
+                for bs in bss:
+                    picks = self.all_picks[ind]
+                    t = picks[bs[0]].get(bs[1])
+                    if t is not None:
+                        times.append((t, bs[0], bs[1]))
+                for t, sh, rec in sorted(times):
+                    print(f'Pick{ind} for shot {sh} receiver {rec} at {t:.4f}s')
 
     def keypress(self, event):
         if event.inaxes != self.ax:
@@ -369,11 +454,21 @@ class MPLSeisPicker(object):
             self.plot('update_picks')
         elif event.key == 'o':
             x = int(round(event.xdata))
+            y = event.ydata
             try:
-                self.nshot, xn = self.stuff.backshots[(self.nshot, x)]
+                bss = self.stuff.backshots2[(self.nshot, x)]
             except KeyError:
                 print(f'No backshot for shot {self.nshot} and receiver {x}')
             else:
+                nshot, xn = self.stuff.backshots.get((self.nshot, x),
+                                                     (None, None))
+                for bs in bss:
+                    if (nshot is None or
+                            abs(self.picks[bs[0]].get(bs[1], -1000) - y) <
+                            abs(self.picks[nshot].get(xn, -1001) - y)):
+                        nshot, xn = bs
+                self.nshot = nshot
+                print(f'Go to shot {nshot} receiver {xn}')
                 # center receiver of backshot to cursor
                 x1, x2 = self.ax.get_xlim()
                 self.ax.set_xlim(x1 + xn - x, x2 + xn - x)
@@ -398,8 +493,13 @@ class MPLSeisPicker(object):
         elif event.key in 'sw':
             print('Save picks')
             for i in range(self.conf.num_pt):
-                write_picks(self.all_picks[i], f'picks{i+1}.txt',
-                                f'fb_all{i+1}.dat', stuff=self.stuff, conf=self.conf)
+                try:
+                    write_picks(self.all_picks[i], f'picks{i+1}.txt',
+                                    f'fb_all{i+1}.dat', stuff=self.stuff, conf=self.conf)
+                except Exception:
+                    import traceback
+                    traceback.print_exc()
+                    print("Don't worry, picks are anyway written to picks?.txt file")
         elif event.key == self.state.last_key == 'm':
             x1, y1, x2, y2 = event.xdata, event.ydata, *self.state.last_xy
             if not (x1 is None or x2 is None or y1 is None or y2 is None):
@@ -521,61 +621,72 @@ class MPLSeisPicker(object):
             self.ax.axhline(color='0.8')
         elif mind < 4:
             self.ax.collections.clear()
+        # plot wiggles
         if mind < 4:
             for i, tr in enumerate(stream):
+                gf = tr.stats.geofon
                 ds = self.opt.downsample
                 out = stream[i].data[::ds] * self.opt.norm
                 if self.opt.cut:
                     out = np.clip(out, -0.45, 0.45)
                 times = tr.times('relative')[::ds] + self.conf.delay
                 if mind < 2:
-                    colors = ['k']
-                    n1 = len(self.stream)
                     if self.opt.individual:
-                        cmap = mpl.cm.get_cmap('viridis')
-                        n = len(self.stream_all) // n1
-                        colors = cmap(np.linspace(0, 1, n))
-                    self.state.wiggles[i], = self.ax.plot(
-                        tr.stats.geofon + out, times,
-                        color=colors[i // n1], lw=1,
+                        lw = 1
+                        color = 'gray'
+                    else:
+                        lw = 0.5
+                        color = 'k'
+                    self.state.wiggles[i], = self.ax.plot(gf + out, times,
+                        color=color, lw=lw,
                         picker=True, pickradius=0.5)
                 else:
-                    self.state.wiggles[i].set_data(1 + tr.stats.geofon + out, times)
+                    self.state.wiggles[i].set_data(gf + out, times)
                 self.state.wiggles[i].set_visible(not self.opt.hide_trace[i+1])
                 if (self.opt.polarity != 0 and not self.opt.hide_trace[i+1]
-                        and not self.conf.stack):
+                        and not self.opt.individual):
                     self.ax.fill_betweenx(
-                        times, 1+i, 1+i+out, where=out*self.opt.polarity > 0,
+                        times, gf, gf+out, where=out*self.opt.polarity > 0,
                         facecolor='k')
-        if self.pickmode:
-            if mind < 2:
-                if self.synthetic:
-                    spick_points = list(
-                        zip(*self.synthetic[self.nshot].items()))
-                    if len(spick_points) > 0:
-                        self.ax.plot(*spick_points, 'o',
-                                     color=self.conf.pick_colors[-1])
-                for ind in range(self.conf.num_pt):
-                    picks = self.all_picks[ind]
-                    pick_points = _get_points(picks, self.nshot)
-                    self.state.pickmarkers[ind], = self.ax.plot(
-                        *pick_points, 'o', color=self.conf.pick_colors[2*ind])
-                    self.state.pickmarkers[ind].set_visible(
-                        pick_points != (0, 0))
+        # plot picks and picks of backshots
+        if mind < 2:
+            if self.synthetic:
+                spick_points = list(
+                    zip(*self.synthetic[self.nshot].items()))
+                if len(spick_points) > 0:
+                    self.ax.plot(*spick_points, 'o',
+                                 color=self.conf.pick_colors[-1])
+            for ind in range(self.conf.num_pt):
+                picks = self.all_picks[ind]
+                pick_points = _get_points(picks, self.nshot)
+                self.state.pickmarkers[ind], = self.ax.plot(
+                    *pick_points, 'o', color=self.conf.pick_colors[2*ind])
+                self.state.pickmarkers[ind].set_visible(
+                    pick_points != (0, 0))
+                if hasattr(self.stuff, 'backshots'):
                     bpicks = []
                     for i in range(len(stream)+1):
-                        if (self.nshot, i) in self.stuff.backshots:
-                            bs = self.stuff.backshots[(self.nshot, i)]
+                        bs = self.stuff.backshots.get((self.nshot, i))
+                        if bs is not None and bs[1] in picks[bs[0]]:
+                            bpicks.append((i, picks[bs[0]][bs[1]]))
+                    bpicks2 = []
+                    for i in range(len(stream)+1):
+                        bss = self.stuff.backshots2.get((self.nshot, i), ())
+                        for bs in bss:
                             if bs[1] in picks[bs[0]]:
-                                bpicks.append((i, picks[bs[0]][bs[1]]))
+                                bpicks2.append((i, picks[bs[0]][bs[1]]))
+                    if len(bpicks2) > 0:
+                        self.ax.plot(*zip(*bpicks2), 'o', ms = MS//2,
+                                     color=self.conf.pick_colors[2*ind+1],
+                                     alpha=0.5, picker=True)
                     if len(bpicks) > 0:
                         self.ax.plot(*zip(*bpicks), 'o', ms = MS//2,
                                      color=self.conf.pick_colors[2*ind+1])
-            elif mind == 4:
-                pick_points = _get_points(self.picks, self.nshot)
-                self.state.pickmarkers[self.picktype].set_data(*pick_points)
-                self.state.pickmarkers[self.picktype].set_visible(
-                    pick_points != (0, 0))
+        elif mind == 4:
+            pick_points = _get_points(self.picks, self.nshot)
+            self.state.pickmarkers[self.picktype].set_data(*pick_points)
+            self.state.pickmarkers[self.picktype].set_visible(
+                pick_points != (0, 0))
         if mind > 0:
             self.ax.set_xlim(xlim)
             self.ax.set_ylim(ylim)
@@ -625,9 +736,10 @@ class MPLSeisPicker(object):
             self.picks[self.nshot][x] = pick
             pick0 = pick0 + autopick.t3 + index * tr0.stats.delta
 
-
     def read_stream(self):
         conf = self.conf
+        if conf.stack and conf.filenumbers is None:
+            raise ValueError('Need filenumbers.txt file when stacking')
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
             if conf.stack:
@@ -647,7 +759,7 @@ class MPLSeisPicker(object):
                         assert int(tr.stats.seg2.CHANNEL_NUMBER) == i+1
                     except:
                         warn('SEG2 channel number does not match, check data')
-        if self.pickmode:
+        if self.stuff.spread_from_sp is not None:
             spread = self.stuff.spread_from_sp[self.nshot]
             for stream in streams:
                 if 'mute' in spread:
