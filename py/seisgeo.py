@@ -130,7 +130,7 @@ def profilemeter2xy(meters, x, y, print_lines=False):
             meter * np.sin(alpha) + y[0]) for meter in meters]
     if print_lines:
         for i, (x2, y2), in enumerate(res):
-            print(f'x{i}={x2-200000:.3f} y{i}={y2:.3f} z{i}=',)
+            print(f'x{i}={x2:.3f} y{i}={y2:.3f} z{i}=',)
     return res
 
 

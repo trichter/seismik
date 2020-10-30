@@ -6,7 +6,7 @@ globexpr = 'INV/FWD2/fd*.synth.asc'
 soufname = 'GEO/sou_xz.dat'
 recfname = 'GEO/rec_xz.dat'
 spredfname = 'GEO/spreads.txt'
-fname_out = 'synthetic_picks.txt'
+fname_out = 'synp.txt'
 
 sou = np.loadtxt(soufname)[:,:2]
 rec = np.loadtxt(recfname)[:,:2]
