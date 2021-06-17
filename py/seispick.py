@@ -10,6 +10,8 @@ Possible invocations:
     -v    verbose mode
     -h    show help
 
+version 2021.06 intercept of line fit now given at shot point
+                add least-squares line fit
 version 2020.10 options to reload config, plot individual traces
                 robust parsing of seisconf file and command line options
                 display all possible backshot picks
@@ -42,6 +44,7 @@ p: switch polarity
 f: apply/remove filter
 a/A: apply autopicker for traces on the right/left
 m: fit line to two points
+M: least-squares line fit
 
 x: replot
 l: reload configuration
@@ -73,6 +76,7 @@ import numpy as np
 from obspy import read
 from obspy.signal.cross_correlation import correlate_template
 from scipy.linalg import lstsq
+from scipy.stats import linregress
 import tkinter as tk
 
 
@@ -193,22 +197,43 @@ def interp(x1, y1, x2, y2, n):
     return xp[ind], yp[ind]
 
 
-def fit_line(x1, y1, x2, y2, fname=None):
+def fit_line(x1, y1, x2, y2, x0, fname=None):
     if x1 > x2:
         x1, x2, y1, y2 = x2, x1, y2, y1
     if fname is not None:
         recs = np.genfromtxt(fname, dtype=None, encoding=None)
         rec_pos = {sp: (sx, sz) for sp, sx, sz in recs}
-        x1 = rec_pos[int(round(x1))][0]
-        x2 = rec_pos[int(round(x2))][0]
-        # xmax = sorted(rec_pos)[-1]
-        # xmax = rec_pos[xmax][0]
+        x0 = rec_pos[x0][0]
+        x1 = rec_pos[int(round(x1))][0] - x0
+        x2 = rec_pos[int(round(x2))][0] - x0
     a = (y1 - y2) / (x1 - x2)
     b = y1 - a * x1
     print('line: y = a * x + b')
-    print(f'a = {a}')
-    print(f'1 / a = {1/a}')
-    print(f'b = {b}')
+    print(f'a = {a:.4g}')
+    print(f'1 / a = {1/a:.1f}')
+    print(f'b = {b:.3g}')
+
+
+def fit_line_ls(pr, x0, fname=None):
+    x, t = zip(*pr)
+    if fname is not None:
+        recs = np.genfromtxt(fname, dtype=None, encoding=None)
+        rec_pos = {sp: (sx, sz) for sp, sx, sz in recs}
+        x0 = rec_pos[x0][0]
+        xf = [rec_pos[xx][0] - x0 for xx in x]
+    else:
+        xf = x
+    a, b, *_ = linregress(xf, t)
+    print('least squares fit: y = a * x + b')
+    print(f'a = {a:.4g}')
+    print(f'1 / a = {1/a:.1f}')
+    print(f'b = {b:.3g}')
+    # just for plotting a line
+    y0 = a * xf[0] + b
+    y1 = a * xf[-1] + b
+    a2 = (y1 - y0) / (x[-1] - x[0])
+    b2 = y0 - a2 * x[0]
+    return lambda x: a2 * x + b2
 
 
 def _try_read_file(func, fname, verbose=True):
@@ -502,10 +527,30 @@ class MPLSeisPicker(object):
                     print("Don't worry, picks are anyway written to picks?.txt file")
         elif event.key == self.state.last_key == 'm':
             x1, y1, x2, y2 = event.xdata, event.ydata, *self.state.last_xy
+            x0 = self.conf.shotpoints[self.nshot]
             if not (x1 is None or x2 is None or y1 is None or y2 is None):
-                fit_line(x1, y1, x2, y2, fname=self.conf.info + 'rec_xz.dat')
+                fit_line(x1, y1, x2, y2, x0, fname=self.conf.info + 'rec_xz.dat')
                 self.ax.plot((x1, x2), (y1, y2), color='C1')
                 self.fig.canvas.draw()
+            event.key = None
+        elif event.key == self.state.last_key == 'M':
+            x1, x2 = event.xdata, self.state.last_xy[0]
+            x0 = self.conf.shotpoints[self.nshot]
+            if not (x1 is None or x2 is None):
+                if x1 > x2:
+                    x1, x2 = x2, x1
+                x1 = int(round(x1))
+                x2 = int(round(x2))
+                pickrange = [(x, p) for x, p in self.picks[self.nshot].items()
+                             if x in range(x1, x2+1)]
+                if len(pickrange) < 3:
+                    print('Not enough picks for least squares fit.')
+                else:
+                    func = fit_line_ls(pickrange, x0, fname=self.conf.info + 'rec_xz.dat')
+                    xr = np.array([x1, x2])
+                    self.ax.plot(xr, func(xr), color='C1')
+                    self.fig.canvas.draw()
+            event.key = None
         elif len(event.key) == 2 and event.key[0] == 'f':
             pt = int(event.key[1])
             if pt <= self.conf.num_pt:
