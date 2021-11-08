@@ -55,7 +55,7 @@ def plot_html(fname_in, fname_out, zone=None, delimiter=',',
     latlon0 = utm.to_latlon(x0, y0, *zone) if zone else (y0, x0)
     m = folium.Map(location=latlon0, zoom_start=15, max_zoom=20, control_scale=True)
     m.add_child(folium.LatLngPopup())
-    for name, xp, yp, zp in sorted(zip(names, x, y, z)):
+    for name, xp, yp, zp in zip(names, x, y, z):
         if color is None and color_func is None:
             c = '#3186cc'
         elif color is None:
