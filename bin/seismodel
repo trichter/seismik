@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+# Copyright 2022 Tom Eulenfeld, MIT license
+
+from seismodel import main
+main()

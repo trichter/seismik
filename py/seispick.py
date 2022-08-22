@@ -116,7 +116,7 @@ def write_picks(picks, fname1, fname2=None, stuff=None, conf=None):
     shots = np.genfromtxt(conf.info + 'sou_xz.dat', dtype=None,
                           encoding=None)
     shot_pos = {sp: (sx, sz) for sp, sx, sz in shots}
-    rec_pos = {sp: (sx, sz) for sp, sx, sz in recs}
+    rec_pos = {rec: (sx, sz) for rec, sx, sz in recs}
     profil = [rec_pos[ch2rec[ch]][0] for ch in channel]
     profil_shots = [shot_pos[sp][0] for sp in sht]
     offset = [p - s for p, s in zip(profil, profil_shots)]
