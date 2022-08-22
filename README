@@ -1,7 +1,7 @@
 Skriptsammlung für die Seismikauswertung, Geländeübungen Uni Jena
 
-Die Skripte umfassen das Vorbereiten und Picken der Daten,
-2D-Refraktionstomopgraphie mit FAST und diverse Plots.
+Die Skripte umfassen das Vorbereiten und Picken der Daten, 1D-Inversion und
+2D-Refraktionstomopgraphie mit FAST sowie diverse Plots.
 
 Dateien:
 bin/*
@@ -35,6 +35,7 @@ Installation:
   - cd data_example
   - python geo.py
   - seispick  (einige Picks sind schon gesetzt, in seispick einmal w drücken, dann sollte Datei fb_all1.dat erstellt werden)
+  - seismodel (zum Erstellen von 1D Schichtmodellen aus den Picks)
   - cp fb_all1.dat INV/fb_all.dat
   - cd INV
   - ./xinv (Inversion gestartet, sollte eine ganze Weile laufen, ein Plot mit einem Startmodell sollte sich öffnen, am Ende sollte eine Datei x.ps vorhanden sein)
@@ -54,6 +55,7 @@ Benutzung:
 * Skripte starten
   - conda activate seis
   - python geo.py
+  - seispick
   - seispick
 * Nun kommt FAST
   - Verschieben von fb_all1.dat nach INV/fb_all.dat (oder Link setzen)
