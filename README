@@ -47,6 +47,7 @@ Benutzung:
   - geo.py    Projiziert Koordinaten auf Linie und schreibt Dateien rec_xy.dat und sou_xy.dat für FAST-Skripte, muss entsprechend der Koordinaten-Datei angepasst werden
   - map.py    erstellt Folium-Landkarte, muss entsprechend der Koordinaten-Datei angepasst werden (fakultativ)
   - bin/seispick   Plotting und Picking Tool: erstellt picks.txt und fb_all1.dat für FAST, siehe Hilfe (seispick -h), benötigt zum erstellen von fb_all1.dat Output von geo.py
+  - bin/seismodel  Inversion der Picks für 1D-Schichtmodell der Geschwindigkeit, screencast im doc Ordner
 * Konkrete Vorbereitungen
   - data_example Ordner kopieren und umbenennen
   - Beispieldaten in RAW löschen und Messdaten kopieren
@@ -56,7 +57,7 @@ Benutzung:
   - conda activate seis
   - python geo.py
   - seispick
-  - seispick
+  - seismodel
 * Nun kommt FAST
   - Verschieben von fb_all1.dat nach INV/fb_all.dat (oder Link setzen)
   - xinv anpassen und ausführen
