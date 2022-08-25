@@ -214,7 +214,6 @@ def plot_and_show(n, x, t, twosides=False):
         colors = np.array(['k'] * len(n))
         colors[ind2] = 'm'
         fit_data[:] = [x[ind2], t[ind2]]
-        print(fit_data)
         markers.set_color(colors)
         fig.canvas.draw()
 
