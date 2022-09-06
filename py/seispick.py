@@ -10,6 +10,7 @@ Possible invocations:
     -v    verbose mode
     -h    show help
 
+version 2022.09 fix bug: order config option in spreads.txt usable again
 version 2021.06 intercept of line fit now given at shot point
                 add least-squares line fit
 version 2020.10 options to reload config, plot individual traces
@@ -669,7 +670,7 @@ class MPLSeisPicker(object):
         # plot wiggles
         if mind < 4:
             for i, tr in enumerate(stream):
-                gf = tr.stats.geofon
+                gf = i % len(self.stream) + 1 #tr.stats.geofon
                 ds = self.opt.downsample
                 out = stream[i].data[::ds] * self.opt.norm
                 if self.opt.cut:
