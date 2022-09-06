@@ -6,6 +6,10 @@
 # spread receivers shots
 #1      1-96    1-37   order:1-24 order:49-72 mute:4-7,9 polarity:30-40
 #2      25-120  38-49
+# you can define shot ponts wich are not at geofons with
+#1      1-96    1-37   # experiment
+#2      207-216  38    # just for loading the shot coordinates at 207-216, shot 38 not defined in shotpoints.txt
+
 # spread receivers shots
 1      1-120     1-24    mute:97-120
 2     25-144     25-32
