@@ -57,7 +57,8 @@ def convert_picks(picks, stuff, sc):
     picksnew = list(zip(
         *[(sp,
            rec_pos[ch2rec[spreadch2ch(sp, ch)]][0] - shot_pos[sp][0],
-           t + sc.get('delay', 0.0))
+           t #+ sc.get('delay', 0.0)
+           )
           for sp in sorted(picks)
           for ch, t in sorted(picks[sp].items())
           if spreadch2ch(sp, ch) not in stuff.missing_channels
