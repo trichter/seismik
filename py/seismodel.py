@@ -138,8 +138,8 @@ def tt2model(mcs):
     def term(v1, v2):
         return (1/v1**2 - 1/v2**2)**0.5
 
-    for n in range(N - 1):
-        tau0 = sum(2*h[j]*term(v[j], v[n]) for j in range(n))
+    for n in range(N-1):
+        tau0 = sum(2*h[j]*term(v[j], v[n+1]) for j in range(n))
         hn = (tau[n+1]-tau0) / 2 / term(v[n], v[n+1])
         h.append(hn)
     for i in range(N-1):
