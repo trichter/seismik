@@ -506,13 +506,13 @@ class MPLSeisPicker(object):
             self.plot('update_picks')
         elif event.key in ('left', 'right'):
             x1, x2 = self.ax.get_xlim()
-            w = int(0.75 * (x2 - x1))
+            w = int(0.4 * (x2 - x1))
             d = -1 if event.key == 'left' else 1
             self.ax.set_xlim(x1 + d * w, x2 + d * w)
             self.fig.canvas.draw()
         elif event.key in ('up', 'down'):
             y1, y2 = self.ax.get_ylim()
-            h = 0.75 * (y2 - y1)
+            h = 0.4 * (y2 - y1)
             d = -1 if event.key == 'down' else 1
             self.ax.set_ylim(y1 + d * h, y2 + d * h)
             self.fig.canvas.draw()
