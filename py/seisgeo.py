@@ -43,13 +43,13 @@ def plot_projection(x, y, xp, yp, m, b, fname=None):
         plt.savefig(fname)
 
 
-def plot_html(fname_in, fname_out, zone=None, delimiter=',',
-              color=None, color_func=None):
+def plot_html(fname_in, fname_out, zone=None, delimiter=',', encoding=None,
+              color=None, color_func=None, reverse=False, **kw):
     """Plot html of coordinates in fname_in"""
     import folium
     import utm
-    data = np.genfromtxt(fname_in, dtype=None, encoding=None, delimiter=delimiter)
-    names, x, y, z, *_ = zip(*data)
+    data = np.genfromtxt(fname_in, dtype=None, delimiter=delimiter, encoding=encoding, **kw)
+    names, x, y, z, *_ = list(zip(*reversed(data))) if reverse else zip(*data)
     x0 = np.mean(x)
     y0 = np.mean(y)
     latlon0 = utm.to_latlon(x0, y0, *zone) if zone else (y0, x0)
@@ -96,23 +96,35 @@ def test_project_coords():
     plot_projection(x, y, xp, yp, m, b)
 
 
-def write_geo(x, y, z, x0, y0, sps, fname1, fname2, rec0=1, sort=False):
+def write_geo(x, y, z, x0, y0, sps, fname1, fname2, rec0=1, sort=False,
+              xyzs=None, shot0=1):
     """Write profil files (receivers and shots)
 
     x,y,z: profile coordinates
     x0,y0: profile in m relative to this coordinates
-    shot_ind: indizes of shot points (at receivers)
     fname1,fname2: file name for receivers, shots
+    sps: shotpoints - geofon dictionary from read_shotpoints
     rec0,shot0: Start number of receivers/shots
+    xyzs: sps can be set to None. Then, use xyzs.
+          tuple of profile coordinates of shotpoints,
+          (x, ys, zs)
     """
     fmt = '%3d  %8.3f  %8.3f'
     pos = ((x - x0) ** 2 + (y - y0) ** 2) ** 0.5
     num = np.arange(len(x)) + rec0
 
-    shot_ind=np.array(list(sps.values())) - 1
-    num2 = sps.keys()
-    pos2 = pos[shot_ind]
-    z2 = z[shot_ind]
+    if xyzs is not None:
+        x2, y2, z2 = xyzs
+        pos2 = ((x2 - x0) ** 2 + (y2 - y0) ** 2) ** 0.5
+        num2 = np.arange(len(x2)) + shot0
+    elif sps is not None:
+        shot_ind=np.array(list(sps.values())) - 1
+        num2 = sps.keys()
+        pos2 = pos[shot_ind]
+        z2 = z[shot_ind]
+    else:
+        raise
+
     if sort:
         z = [a for _, a in sorted(zip(pos, z))]
         z2 = [a for _, a in sorted(zip(pos2, z2))]
