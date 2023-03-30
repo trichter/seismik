@@ -95,12 +95,13 @@ def load_picks(fname):
     return picks
 
 
-def write_picks(picks, fname1, fname2=None, stuff=None, conf=None):
+def write_picks(picks, fname1, fname2=None, fname3=None, 
+                stuff=None, conf=None):
     with open(fname1, 'w') as f:
         for sp in sorted(picks):
             for i, t in sorted(picks[sp].items()):
                 f.write(f'{sp}   {i}  {t:.7f}\n')
-    if fname2 is None:
+    if fname2 and fname3 is None:
         return
     ch2rec = stuff.ch2rec
 
@@ -121,13 +122,21 @@ def write_picks(picks, fname1, fname2=None, stuff=None, conf=None):
     profil = [rec_pos[ch2rec[ch]][0] for ch in channel]
     profil_shots = [shot_pos[sp][0] for sp in sht]
     offset = [p - s for p, s in zip(profil, profil_shots)]
-    depth = conf.ref_depth - \
-        np.array([rec_pos[ch2rec[ch]][1] for ch in channel])
-    error = 1 + np.abs(offset) * conf.error
-    pick = [1000 * max(0, p) for p in pick]
-    out = [sht, profil, depth, pick, error]
-    fmt = '%d %.3f %.3f %.3f %.2f'
-    np.savetxt(fname2, list(zip(*out)), fmt=fmt)
+    if fname2:
+        depth = np.array([rec_pos[ch2rec[ch]][1] for ch in channel])
+        error = 1 + np.abs(offset) * conf.error
+        pick1 = [1000 * max(0, p) for p in pick]
+        out = [sht, profil, depth, pick1, error]
+        fmt = '%d %.3f %.3f %.3f %.2f'
+        np.savetxt(fname2, list(zip(*out)), fmt=fmt)
+    if fname3:
+        depth = np.array([-rec_pos[ch2rec[ch]][1] for ch in channel])
+        depth_shots = [-shot_pos[sp][1] for sp in sht]
+        pick1 = [max(0, p) for p in pick]
+        out = [pick1, profil_shots, depth_shots, profil, depth]
+        fmt = '%.8f 0 %.3f %.3f %.3f %.3f'
+        np.savetxt(fname3, list(zip(*out)), fmt=fmt)
+    
 
 
 def calc_backshots(shotpoints, spreads, verbose=True):
@@ -521,7 +530,9 @@ class MPLSeisPicker(object):
             for i in range(self.conf.num_pt):
                 try:
                     write_picks(self.all_picks[i], f'picks{i+1}.txt',
-                                    f'fb_all{i+1}.dat', stuff=self.stuff, conf=self.conf)
+                                    f'fb_all{i+1}.dat',
+                                    f'fb_all_gimli{i+1}.dat',
+                                    stuff=self.stuff, conf=self.conf)
                 except Exception:
                     import traceback
                     traceback.print_exc()
