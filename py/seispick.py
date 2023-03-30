@@ -95,7 +95,7 @@ def load_picks(fname):
     return picks
 
 
-def write_picks(picks, fname1, fname2=None, fname3=None, 
+def write_picks(picks, fname1, fname2=None, fname3=None,
                 stuff=None, conf=None):
     with open(fname1, 'w') as f:
         for sp in sorted(picks):
@@ -122,21 +122,18 @@ def write_picks(picks, fname1, fname2=None, fname3=None,
     profil = [rec_pos[ch2rec[ch]][0] for ch in channel]
     profil_shots = [shot_pos[sp][0] for sp in sht]
     offset = [p - s for p, s in zip(profil, profil_shots)]
+    depth = -np.array([rec_pos[ch2rec[ch]][1] for ch in channel])
+    pick1 = np.maximum(0, pick)
     if fname2:
-        depth = np.array([rec_pos[ch2rec[ch]][1] for ch in channel])
         error = 1 + np.abs(offset) * conf.error
-        pick1 = [1000 * max(0, p) for p in pick]
-        out = [sht, profil, depth, pick1, error]
+        out = [sht, profil, conf.ref_depth + depth, 1000 * pick1, error]
         fmt = '%d %.3f %.3f %.3f %.2f'
         np.savetxt(fname2, list(zip(*out)), fmt=fmt)
     if fname3:
-        depth = np.array([-rec_pos[ch2rec[ch]][1] for ch in channel])
         depth_shots = [-shot_pos[sp][1] for sp in sht]
-        pick1 = [max(0, p) for p in pick]
         out = [pick1, profil_shots, depth_shots, profil, depth]
         fmt = '%.8f 0 %.3f %.3f %.3f %.3f'
         np.savetxt(fname3, list(zip(*out)), fmt=fmt)
-    
 
 
 def calc_backshots(shotpoints, spreads, verbose=True):
