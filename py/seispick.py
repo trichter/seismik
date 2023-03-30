@@ -101,7 +101,7 @@ def write_picks(picks, fname1, fname2=None, fname3=None,
         for sp in sorted(picks):
             for i, t in sorted(picks[sp].items()):
                 f.write(f'{sp}   {i}  {t:.7f}\n')
-    if fname2 and fname3 is None:
+    if fname2 is None or fname3 is None:
         return
     ch2rec = stuff.ch2rec
 
