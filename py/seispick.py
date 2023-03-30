@@ -10,6 +10,7 @@ Possible invocations:
     -v    verbose mode
     -h    show help
 
+version 2023.03 add export of picks to pygimli format
 version 2022.09 fix bug: order config option in spreads.txt usable again
 version 2021.06 intercept of line fit now given at shot point
                 add least-squares line fit
